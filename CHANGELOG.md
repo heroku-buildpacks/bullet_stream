@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added `bullet_stream::important_lit!` macro for colorizing constants (https://github.com/schneems/bullet_stream/pull/17)
+
 ## v0.3.0 - 2024/08/14
 
 - Added `bullet_stream::strip_ansi` (https://github.com/schneems/bullet_stream/pull/11)
