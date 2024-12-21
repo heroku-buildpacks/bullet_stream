@@ -18,6 +18,7 @@ pub(crate) fn print_interval<W>(
     start: String,
     tick: String,
     end: String,
+    on_drop_msg: String,
 ) -> PrintGuard<W>
 where
     W: Write + Send + 'static,
@@ -43,7 +44,7 @@ where
         buffer
     });
 
-    PrintGuard::new(join_handle, sender)
+    PrintGuard::new(join_handle, sender, on_drop_msg)
 }
 
 /// Holds the reference to the background printer.
@@ -59,7 +60,11 @@ where
 /// Updates to this code need to take care to not introduce a panic. See
 /// documentation in `PrintGuard::stop` below for more details.
 #[derive(Debug)]
-pub(crate) struct PrintGuard<W> {
+pub(crate) struct PrintGuard<W>
+where
+    W: Write + Send + 'static,
+{
+    on_drop_msg: String,
     /// Holds the handle to the thread printing ticks in the background.
     ///
     /// Structs that implement `Drop` must ensure a valid internal state at
@@ -72,7 +77,10 @@ pub(crate) struct PrintGuard<W> {
     stop_signal: Sender<()>,
 }
 
-impl<W> Drop for PrintGuard<W> {
+impl<W> Drop for PrintGuard<W>
+where
+    W: Write + Send + 'static,
+{
     fn drop(&mut self) {
         // A note on correctness. It might seem that it's enough to signal the thread to
         // stop, that we don't also have to join and wait for it to finish, but that's not
@@ -84,17 +92,23 @@ impl<W> Drop for PrintGuard<W> {
         // continuing.
         if let Some(join_handle) = self.join_handle.take() {
             let _ = self.stop_signal.send(());
-            let _ = join_handle.join();
+            if let Ok(mut buffer) = join_handle.join() {
+                writeln!(buffer, "{}", self.on_drop_msg).expect("Writer should not be closed")
+            }
         }
     }
 }
 
-impl<W> PrintGuard<W> {
+impl<W> PrintGuard<W>
+where
+    W: Write + Send + 'static,
+{
     /// Preserve internal state by ensuring the `Option` is always populated
-    fn new(join_handle: JoinHandle<W>, sender: Sender<()>) -> Self {
+    fn new(join_handle: JoinHandle<W>, sender: Sender<()>, on_drop_msg: String) -> Self {
         let guard = PrintGuard {
             join_handle: Some(join_handle),
             stop_signal: sender,
+            on_drop_msg,
         };
         debug_assert!(guard.join_handle.is_some());
 
@@ -156,6 +170,7 @@ mod test {
             String::from(" ."),
             String::from("."),
             String::from(". "),
+            String::from("(Error)"),
         );
         let mut writer = dot.stop().unwrap();
 
@@ -177,6 +192,7 @@ mod test {
             String::from(" ."),
             String::from("."),
             String::from(". "),
+            "(Error)".to_string(),
         );
         drop(dot);
 
@@ -188,7 +204,7 @@ mod test {
         log.flush().unwrap();
 
         assert_eq!(
-            String::from("before ... after"),
+            String::from("before ... (Error)\nafter"),
             std::fs::read_to_string(tempfile.path()).unwrap()
         );
     }

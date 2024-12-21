@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix: dropping `Print<Background<W>>` now emits a message of `(Error)` and a newline (https://github.com/heroku-buildpacks/bullet_stream/pull/20)
+
 ## v0.3.0 - 2024/08/14
 
 - Added `bullet_stream::strip_ansi` (https://github.com/schneems/bullet_stream/pull/11)

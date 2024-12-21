@@ -214,7 +214,7 @@ pub mod state {
     ///}
     /// ```
     #[derive(Debug)]
-    pub struct Background<W: std::io::Write> {
+    pub struct Background<W: std::io::Write + Send + 'static> {
         pub(crate) started: Instant,
         pub(crate) write: PrintGuard<ParagraphInspectWrite<W>>,
     }
@@ -676,6 +676,7 @@ where
                     ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, " ."),
                     ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, "."),
                     ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, ". "),
+                    "(Error)".to_string(),
                 ),
             },
         }
@@ -940,6 +941,25 @@ mod test {
         "};
 
         assert_eq!(expected, String::from_utf8_lossy(&io));
+    }
+
+    #[test]
+    fn background_timer_dropped() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("output.txt");
+        let timer = Print::new(File::create(&path).unwrap())
+            .without_header()
+            .bullet("Background")
+            .start_timer("Installing");
+        drop(timer);
+
+        // Test human readable timer output
+        let expected = formatdoc! {"
+            - Background
+              - Installing ... (Error)
+        "};
+
+        assert_eq!(expected, strip_ansi(std::fs::read_to_string(path).unwrap()));
     }
 
     #[test]
