@@ -1,6 +1,7 @@
 //! Helpers for formatting and colorizing your output.
 
 use crate::ansi_escape::{self, ANSI};
+pub(crate) const CMD_INDENT: &str = "      ";
 
 /// Decorate a URL for the build output.
 pub fn url(contents: impl AsRef<str>) -> String {
