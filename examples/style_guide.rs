@@ -112,6 +112,15 @@ fn main() {
                 take to solve the issue.
             "});
     }
+    {
+        use bullet_stream::global::print;
+        print::h2("You can also print with functions");
+        print::bullet("bullet_stream::global::print");
+        print::sub_bullet("Allows you to bypass Rust's type guarantees and print directly");
+        print::sub_bullet("Call `global::set_writer` to configure the destination");
+        print::warning("WARNING:\n\nThe global functions\nProvide fewer consistency guarantees\n");
+        print::sub_bullet("See the `print` module for more info");
+    }
 
     {
         let output = Print::new(stdout()).h2("Formatting helpers");
