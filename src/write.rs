@@ -59,10 +59,12 @@ pub(crate) fn bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
         prefix_first_rest_lines("- ", "  ", s.as_ref().trim())
     )
     .expect("writer open");
+    writer.flush().expect("writer open");
 }
 
 pub(crate) fn sub_bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
     writeln!(writer, "{}", sub_bullet_prefix(s)).expect("writer open");
+    writer.flush().expect("writer open");
 }
 
 pub(crate) fn sub_bullet_prefix(s: impl AsRef<str>) -> String {
