@@ -1,16 +1,15 @@
 use ascii_table::AsciiTable;
-#[allow(clippy::wildcard_imports)]
+use bullet_stream::global::print;
 use bullet_stream::{style, Print};
 use fun_run::CommandWithName;
 use indoc::formatdoc;
-use std::io::stdout;
 use std::io::Write;
 use std::process::Command;
 
 #[allow(clippy::too_many_lines)]
 fn main() {
     {
-        let mut output = Print::new(stdout()).h1("Living build output style guide");
+        let mut output = Print::global().h1("Living build output style guide");
         output = output.h2("Bullet section features");
         output = output
             .bullet("Bullet example")
@@ -73,7 +72,7 @@ fn main() {
         #[allow(clippy::unwrap_used)]
         let cmd_error = Command::new("iDoNotExist").named_output().err().unwrap();
 
-        let mut output = Print::new(stdout()).h2("Error and warnings");
+        let mut output = Print::global().h2("Error and warnings");
         output = output
             .bullet("Debug information")
             .sub_bullet("Should go above errors in section/step format")
@@ -113,7 +112,6 @@ fn main() {
             "});
     }
     {
-        use bullet_stream::global::print;
         print::h2("You can also print with functions");
         print::bullet("bullet_stream::global::print");
         print::sub_bullet("Allows you to bypass Rust's type guarantees and print directly");
@@ -123,7 +121,7 @@ fn main() {
     }
 
     {
-        let output = Print::new(stdout()).h2("Formatting helpers");
+        let output = Print::global().h2("Formatting helpers");
         let mut stream = output
             .bullet(format!("The {} module", style::value("style")))
             .start_stream("Formatting helpers can be used to enhance log output:");
