@@ -1,7 +1,198 @@
+use crate::ansi_escape::ANSI;
+use crate::util::{
+    format_stream_writer, mpsc_stream_to_output, prefix_first_rest_lines, prefix_lines,
+    ParagraphInspectWrite, TrailingParagraph, TrailingParagraphSend,
+};
+use crate::{ansi_escape, background_printer, duration_format, state, style, Print};
 use std::fmt::{Debug, Formatter};
-use std::io;
+use std::io::{self, Write};
 use std::mem;
 use std::sync::Arc;
+use std::time::Instant;
+
+pub(crate) fn h1<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
+    if !writer.trailing_paragraph() {
+        writeln!(writer).expect("writer open");
+    }
+
+    writeln!(
+        writer,
+        "{}",
+        ansi_escape::wrap_ansi_escape_each_line(
+            &ANSI::BoldPurple,
+            format!("# {}", s.as_ref().trim()),
+        ),
+    )
+    .expect("writer open");
+
+    if !writer.trailing_paragraph() {
+        writeln!(writer).expect("writer open");
+    }
+    writer.flush().expect("writer open");
+}
+
+pub(crate) fn h2<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
+    if !writer.trailing_paragraph() {
+        writeln!(writer).expect("writer open");
+    }
+
+    writeln!(
+        writer,
+        "{}",
+        ansi_escape::wrap_ansi_escape_each_line(
+            &ANSI::BoldPurple,
+            format!("## {}", s.as_ref().trim()),
+        ),
+    )
+    .expect("writer open");
+
+    if !writer.trailing_paragraph() {
+        writeln!(writer).expect("writer open");
+    }
+    writer.flush().expect("writer open");
+}
+
+pub(crate) fn bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
+    writeln!(
+        writer,
+        "{}",
+        prefix_first_rest_lines("- ", "  ", s.as_ref().trim())
+    )
+    .expect("writer open");
+}
+
+pub(crate) fn sub_bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
+    writeln!(writer, "{}", sub_bullet_prefix(s)).expect("writer open");
+}
+
+pub(crate) fn sub_bullet_prefix(s: impl AsRef<str>) -> String {
+    prefix_first_rest_lines("  - ", "    ", s.as_ref().trim())
+}
+
+pub(crate) fn stream_with<W, T, F>(writer: &mut W, s: impl AsRef<str>, mut f: F) -> T
+where
+    W: TrailingParagraphSend,
+    F: FnMut(Box<dyn Write + Send + Sync>, Box<dyn Write + Send + Sync>) -> T,
+    T: 'static,
+{
+    sub_bullet(writer, s);
+    writeln!(writer).expect("writer open");
+
+    let duration = Instant::now();
+    mpsc_stream_to_output(
+        |sender| {
+            f(
+                // The Senders are boxed to hide the types from the caller so it can be changed
+                // in the future. They only need to know they have a `Write + Send + Sync` type.
+                Box::new(format_stream_writer(sender.clone())),
+                Box::new(format_stream_writer(sender.clone())),
+            )
+        },
+        move |recv| {
+            // When it receives input, it writes it to the current `Write` value.
+            //
+            // When the senders close their channel this loop will exit
+            for message in recv {
+                writer.write_all(&message).expect("Writer to not be closed");
+            }
+
+            if !writer.trailing_paragraph() {
+                writeln!(writer).expect("Writer to not be closed");
+            }
+
+            sub_bullet(
+                writer,
+                format!(
+                    "Done {}",
+                    style::details(duration_format::human(&duration.elapsed()))
+                ),
+            )
+        },
+    )
+}
+
+pub(crate) fn start_timer<W>(
+    mut writer: ParagraphInspectWrite<W>,
+    started: Instant,
+    s: impl AsRef<str>,
+) -> Print<state::Background<W>>
+where
+    W: Write + Send + Sync + 'static,
+{
+    // Do not emit a newline after the message
+    write!(&mut writer, "{}", sub_bullet_prefix(s)).expect("writer not to be closed");
+    writer.flush().expect("Output error: UI writer closed");
+
+    Print {
+        started: Some(started),
+        state: state::Background {
+            started: Instant::now(),
+            write: background_printer::print_interval(
+                writer,
+                std::time::Duration::from_secs(1),
+                ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, " ."),
+                ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, "."),
+                ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, ". "),
+                "(Error)".to_string(),
+            ),
+        },
+    }
+}
+
+pub(crate) fn all_done<W: Write>(writer: &mut W, started: &Option<Instant>) {
+    if let Some(started) = started {
+        bullet(
+            writer,
+            format!(
+                "Done (finished in {})",
+                duration_format::human(&started.elapsed())
+            ),
+        );
+    } else {
+        bullet(writer, "Done");
+    }
+}
+
+pub(crate) fn write_paragraph<W: TrailingParagraph>(io: &mut W, color: &ANSI, s: impl AsRef<str>) {
+    let contents = s.as_ref().trim();
+
+    if !io.trailing_paragraph() {
+        writeln!(io).expect("writer open");
+    }
+
+    writeln!(
+        io,
+        "{}",
+        ansi_escape::wrap_ansi_escape_each_line(
+            color,
+            prefix_lines(contents, |_, line| {
+                // Avoid adding trailing whitespace to the line, if there was none already.
+                // The `\n` case is required since `prefix_lines` uses `str::split_inclusive`,
+                // which preserves any trailing newline characters if present.
+                if line.is_empty() || line == "\n" {
+                    String::from("!")
+                } else {
+                    String::from("! ")
+                }
+            }),
+        ),
+    )
+    .expect("writer open");
+    writeln!(io).expect("writer open");
+    io.flush().expect("writer open");
+}
+
+pub(crate) fn warning<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
+    write_paragraph(writer, &ANSI::Yellow, s);
+}
+
+pub(crate) fn error<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
+    write_paragraph(writer, &ANSI::Red, s);
+}
+
+pub(crate) fn important<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
+    write_paragraph(writer, &ANSI::BoldCyan, s);
+}
 
 /// Constructs a writer that buffers written data until given marker byte is encountered and
 /// then applies the given mapping function to the data before passing the result to the wrapped

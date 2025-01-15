@@ -1,11 +1,13 @@
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
 use std::io::Write;
-
 use std::sync::mpsc;
 #[cfg(test)]
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+use crate::style::CMD_INDENT;
+use crate::write::line_mapped;
 
 /// Applies a prefix to the first line and a different prefix to the rest of the lines.
 ///
@@ -65,6 +67,23 @@ pub(crate) struct ParagraphInspectWrite<W> {
     pub(crate) inner: W,
     pub(crate) was_paragraph: bool,
     pub(crate) newlines_since_last_char: usize,
+}
+
+pub(crate) trait TrailingParagraph: Write {
+    /// True if the last thing written was two newlines
+    fn trailing_paragraph(&self) -> bool;
+}
+
+pub(crate) trait TrailingParagraphSend: TrailingParagraph + Send {}
+impl<T> TrailingParagraphSend for T where T: TrailingParagraph + Send {}
+
+impl<W> TrailingParagraph for ParagraphInspectWrite<W>
+where
+    W: Write,
+{
+    fn trailing_paragraph(&self) -> bool {
+        self.was_paragraph
+    }
 }
 
 impl<W> ParagraphInspectWrite<W> {
@@ -222,6 +241,23 @@ where
         drop(send);
 
         out
+    })
+}
+
+pub(crate) fn format_stream_writer<S>(stream_to: S) -> crate::write::MappedWrite<S>
+where
+    S: Write + Send + Sync,
+{
+    line_mapped(stream_to, |mut line| {
+        // Avoid adding trailing whitespace to the line, if there was none already.
+        // The `[b'\n']` case is required since `line` includes the trailing newline byte.
+        if line.is_empty() || line == [b'\n'] {
+            line
+        } else {
+            let mut result: Vec<u8> = CMD_INDENT.into();
+            result.append(&mut line);
+            result
+        }
     })
 }
 
