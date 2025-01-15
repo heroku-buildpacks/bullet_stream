@@ -72,6 +72,8 @@ pub(crate) struct ParagraphInspectWrite<W> {
 pub(crate) trait TrailingParagraph: Write {
     /// True if the last thing written was two newlines
     fn trailing_paragraph(&self) -> bool;
+
+    fn trailing_newline_count(&self) -> usize;
 }
 
 pub(crate) trait TrailingParagraphSend: TrailingParagraph + Send {}
@@ -83,6 +85,10 @@ where
 {
     fn trailing_paragraph(&self) -> bool {
         self.was_paragraph
+    }
+
+    fn trailing_newline_count(&self) -> usize {
+        self.newlines_since_last_char
     }
 }
 
