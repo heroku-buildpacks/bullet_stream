@@ -9,11 +9,14 @@ use std::time::Instant;
 mod ansi_escape;
 mod background_printer;
 mod duration_format;
+pub mod global;
 pub mod style;
 mod util;
 mod write;
 pub use ansi_escape::strip_ansi;
+use global::_GlobalWriter;
 use style::CMD_INDENT;
+use util::TrailingParagraph;
 
 /// Use [`Print`] to output structured text as a buildpack/script executes. The output
 /// is intended to be read by the application user.
@@ -313,6 +316,24 @@ where
     pub fn important(mut self, s: impl AsRef<str>) -> Print<S> {
         write::important(self.state.write_mut(), s);
         self
+    }
+}
+
+impl Print<state::Header<_GlobalWriter>> {
+    /// Create an output struct that uses the configured global writer
+    ///
+    /// To modify the global writer call [global::set_writer]
+    pub fn global() -> Print<state::Header<_GlobalWriter>> {
+        Print {
+            state: state::Header {
+                write: ParagraphInspectWrite {
+                    inner: _GlobalWriter,
+                    was_paragraph: _GlobalWriter.trailing_paragraph(),
+                    newlines_since_last_char: _GlobalWriter.trailing_newline_count(),
+                },
+            },
+            started: None,
+        }
     }
 }
 
@@ -692,7 +713,7 @@ mod test {
     use fun_run::CommandWithName;
     use indoc::formatdoc;
     use libcnb_test::assert_contains;
-    use std::fs::File;
+    use std::{cell::RefCell, fs::File};
 
     #[test]
     fn double_h2_h2_newlines() {
@@ -1028,6 +1049,58 @@ mod test {
               - The jumping fountains are great
               - The music is nice here
             - Done (finished in < 0.1s)
+        "};
+
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
+    }
+
+    thread_local! {
+        static THREAD_LOCAL_WRITER: RefCell<Vec<u8>> = RefCell::new(Vec::new());
+    }
+
+    struct V8ThreadedWriter;
+    impl V8ThreadedWriter {
+        fn take() -> Vec<u8> {
+            THREAD_LOCAL_WRITER.take()
+        }
+    }
+    impl Write for V8ThreadedWriter {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            THREAD_LOCAL_WRITER.with_borrow_mut(|writer| writer.write(buf))
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            THREAD_LOCAL_WRITER.with_borrow_mut(|writer| writer.flush())
+        }
+    }
+
+    #[test]
+    fn global_preserves_newline() {
+        global::set_writer(V8ThreadedWriter);
+
+        Print::global()
+            .h1("Genuine Joes")
+            .bullet("Dodge")
+            .sub_bullet("A ball")
+            .error("A wrench");
+
+        Print::global()
+            .without_header()
+            .error("It's a bold strategy, Cotton.\nLet's see if it pays off for 'em.");
+
+        let io = V8ThreadedWriter::take();
+        let expected = formatdoc! {"
+
+            # Genuine Joes
+
+            - Dodge
+              - A ball
+
+            ! A wrench
+
+            ! It's a bold strategy, Cotton.
+            ! Let's see if it pays off for 'em.
+
         "};
 
         assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
