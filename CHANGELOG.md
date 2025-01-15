@@ -4,6 +4,8 @@
 
 - Fix: dropping `Print<Background<W>>` now emits a message of `(Error)` and a newline (https://github.com/heroku-buildpacks/bullet_stream/pull/20)
 - Added: `Print::global()` and `bullet_stream::global::set_writer`. Use these to preserve the newline indentation when handling dropped structs or errors ()
+- Added: `bullet_stream::global::print` functions for writing formatted output without needing to preserve state ()
+- Added: `Print::global()` and `bullet_stream::global::set_writer`. Use these to preserve the newline indentation when handling dropped structs or errors ()
 
 ## v0.3.0 - 2024/08/14
 
