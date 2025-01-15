@@ -1055,7 +1055,7 @@ mod test {
     }
 
     thread_local! {
-        static THREAD_LOCAL_WRITER: RefCell<Vec<u8>> = RefCell::new(Vec::new());
+        static THREAD_LOCAL_WRITER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
     }
 
     struct V8ThreadedWriter;
