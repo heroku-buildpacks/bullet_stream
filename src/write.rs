@@ -71,7 +71,7 @@ pub(crate) fn sub_bullet_prefix(s: impl AsRef<str>) -> String {
     prefix_first_rest_lines("  - ", "    ", s.as_ref().trim())
 }
 
-pub(crate) fn stream_with<W, T, F>(writer: &mut W, s: impl AsRef<str>, mut f: F) -> T
+pub(crate) fn sub_stream_with<W, T, F>(writer: &mut W, s: impl AsRef<str>, mut f: F) -> T
 where
     W: TrailingParagraphSend,
     F: FnMut(Box<dyn Write + Send + Sync>, Box<dyn Write + Send + Sync>) -> T,
@@ -113,7 +113,7 @@ where
     )
 }
 
-pub(crate) fn start_timer<W>(
+pub(crate) fn sub_start_timer<W>(
     mut writer: ParagraphInspectWrite<W>,
     started: Instant,
     s: impl AsRef<str>,

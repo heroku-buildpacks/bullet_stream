@@ -600,7 +600,7 @@ where
     #[must_use]
     #[allow(unused_mut)]
     pub fn start_timer(mut self, s: impl AsRef<str>) -> Print<state::Background<W>> {
-        write::start_timer(self.state.write, Instant::now(), s)
+        write::sub_start_timer(self.state.write, Instant::now(), s)
     }
 
     /// Stream two inputs without consuming
@@ -640,7 +640,7 @@ where
         F: FnMut(Box<dyn Write + Send + Sync>, Box<dyn Write + Send + Sync>) -> T,
         T: 'static,
     {
-        write::stream_with(&mut self.state.write, s, f)
+        write::sub_stream_with(&mut self.state.write, s, f)
     }
 
     /// Finish a section and transition back to [`state::Bullet`].
