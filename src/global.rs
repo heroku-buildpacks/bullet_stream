@@ -86,12 +86,18 @@ pub mod print {
     /// Output a h1 header to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
     /// print::h1("I am a top level header");
     /// let duration = std::time::Instant::now();
     /// // ...
     /// print::all_done(&Some(duration));
+    ///
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// ## I am a top level header
+    ///
+    /// - Done (finished in < 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn h1(s: impl AsRef<str>) {
         write::h1(&mut _GlobalWriter, s);
@@ -100,13 +106,21 @@ pub mod print {
     /// Output a h2 header to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
     /// print::h1("I am a top level header");
-    /// print::h2("I am a h2 header");
+    /// print::h2("I am an h2 header");
     /// let duration = std::time::Instant::now();
     /// // ...
     /// print::all_done(&Some(duration));
+    ///
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// ## I am a top level header
+    ///
+    /// ### I am an h2 header
+    ///
+    /// - Done (finished in < 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn h2(s: impl AsRef<str>) {
         write::h2(&mut _GlobalWriter, s);
@@ -115,30 +129,38 @@ pub mod print {
     /// Output a bullet point to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
     /// print::bullet("Good point!");
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// - Good point!
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn bullet(s: impl AsRef<str>) {
         write::bullet(&mut _GlobalWriter, s)
     }
 
-    /// Output a subbullet point to the global writer without state
+    /// Output a sub-bullet point to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
     /// print::bullet("Good point!");
     /// print::sub_bullet("Another good point!");
+    ///
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// - Good point!
+    ///   - Another good point!
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn sub_bullet(s: impl AsRef<str>) {
         write::sub_bullet(&mut _GlobalWriter, s);
     }
 
-    /// Stream a command to the global writer without state
+    /// Print a sub-bullet and stream a command to the global writer without state
     ///
     /// ```no_run
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     /// use fun_run::CommandWithName;
     ///
     /// let mut cmd = std::process::Command::new("bash");
@@ -156,29 +178,39 @@ pub mod print {
         write::sub_stream_with(&mut _GlobalWriter, s, f)
     }
 
-    /// Print dots to the global writer without state
+    /// Print a sub-bullet and then emmit dots to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
     /// print::bullet("Ruby");
-    /// let timer = print::start_timer("Installing");
+    /// let timer = print::sub_start_timer("Installing");
     /// // ...
     /// timer.done();
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// - Ruby
+    ///   - Installing ... (< 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn sub_start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
-        write::start_timer(ParagraphInspectWrite::new(_GlobalWriter), Instant::now(), s)
+        write::sub_start_timer(ParagraphInspectWrite::new(_GlobalWriter), Instant::now(), s)
     }
 
     /// Print an all done message with timing info to the UI
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
-    /// print::h2("I am a h2 header");
+    /// print::h2("I am an h2 header");
     /// let duration = std::time::Instant::now();
     /// // ...
     /// print::all_done(&Some(duration));
+    ///
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// ### I am an h2 header
+    ///
+    /// - Done (finished in < 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn all_done(started: &Option<Instant>) {
         write::all_done(&mut _GlobalWriter, started);
@@ -187,9 +219,16 @@ pub mod print {
     /// Print a warning to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
     ///
-    /// print::warning("This town ain't big enough for the both of us");
+    /// print::warning("This town ain't\nbig enough\nfor the both of us");
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    ///
+    /// ! This town ain't
+    /// ! big enough
+    /// ! for the both of us
+    ///
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn warning(s: impl AsRef<str>) {
         write::warning(&mut _GlobalWriter, s);
@@ -198,9 +237,24 @@ pub mod print {
     /// Print an error to the global writer without state
     ///
     /// ```
-    /// use bullet_stream::global::print;
+    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use indoc::formatdoc;
     ///
-    /// print::error("Big problemo!");
+    /// print::error(formatdoc! {"
+    ///     It's at times like this, when I'm trapped in a Vogon
+    ///     airlock with a man from Betelgeuse, and about to die of asphyxiation
+    ///     in deep space that I really wish I'd listened to what my mother told
+    ///     me when I was young
+    /// "});
+    ///
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    ///
+    /// ! It's at times like this, when I'm trapped in a Vogon
+    /// ! airlock with a man from Betelgeuse, and about to die of asphyxiation
+    /// ! in deep space that I really wish I'd listened to what my mother told
+    /// ! me when I was young
+    ///
+    #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn error(s: impl AsRef<str>) {
         write::error(&mut _GlobalWriter, s);
