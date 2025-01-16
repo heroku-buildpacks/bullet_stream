@@ -144,16 +144,16 @@ pub mod print {
     /// let mut cmd = std::process::Command::new("bash");
     /// cmd.args(["-c", "echo 'hello world'"]);
     ///
-    /// print::stream_with(format!("Running {}", cmd.name()), |stdout, stderr| {
+    /// print::sub_stream_with(format!("Running {}", cmd.name()), |stdout, stderr| {
     ///   cmd.stream_output(stdout, stderr)
     /// }).unwrap();
     /// ```
-    pub fn stream_with<F, T>(s: impl AsRef<str>, f: F) -> T
+    pub fn sub_stream_with<F, T>(s: impl AsRef<str>, f: F) -> T
     where
         F: FnMut(Box<dyn Write + Send + Sync>, Box<dyn Write + Send + Sync>) -> T,
         T: 'static,
     {
-        write::stream_with(&mut _GlobalWriter, s, f)
+        write::sub_stream_with(&mut _GlobalWriter, s, f)
     }
 
     /// Print dots to the global writer without state
@@ -166,7 +166,7 @@ pub mod print {
     /// // ...
     /// timer.done();
     /// ```
-    pub fn start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
+    pub fn sub_start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
         write::start_timer(ParagraphInspectWrite::new(_GlobalWriter), Instant::now(), s)
     }
 
