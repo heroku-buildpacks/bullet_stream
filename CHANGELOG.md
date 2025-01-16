@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added `bullet_stream::global::print` functions for writing formatted output without needing to preserve state (https://github.com/heroku-buildpacks/bullet_stream/pull/21)
+- Added `Print::global()` and `bullet_stream::global::set_writer`. Use these to preserve the newline indentation when handling dropped structs or errors (https://github.com/heroku-buildpacks/bullet_stream/pull/21)
+
 ## v0.3.0 - 2024/08/14
 
 - Added `bullet_stream::strip_ansi` (https://github.com/schneems/bullet_stream/pull/11)
