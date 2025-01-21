@@ -14,7 +14,7 @@ This work started as a shared output format for Heroku's Cloud Native Buildpack 
 
 Add `bullet_stream` to your project:
 
-```ignore
+```term
 $ cargo add bullet_stream
 ```
 
@@ -39,7 +39,7 @@ output.done();
 
 To view the output format and read a living style guide, you can run:
 
-```ignore
+```term
 $ git clone https://github.com/schneems/bullet_stream
 $ cd bullet_stream
 $ cargo run --example style_guide

@@ -1,9 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use crate::ansi_escape::ANSI;
-use crate::util::{
-    mpsc_stream_to_output, prefix_first_rest_lines, prefix_lines, ParagraphInspectWrite,
-};
+use crate::util::ParagraphInspectWrite;
 use crate::write::line_mapped;
 use std::fmt::Debug;
 use std::io::Write;
@@ -12,11 +9,14 @@ use std::time::Instant;
 mod ansi_escape;
 mod background_printer;
 mod duration_format;
+pub mod global;
 pub mod style;
 mod util;
 mod write;
-
 pub use ansi_escape::strip_ansi;
+use global::_GlobalWriter;
+use style::CMD_INDENT;
+use util::TrailingParagraph;
 
 /// Use [`Print`] to output structured text as a buildpack/script executes. The output
 /// is intended to be read by the application user.
@@ -276,7 +276,7 @@ where
     /// using a [`Print::warning`] instead.
     ///
     pub fn error(mut self, s: impl AsRef<str>) {
-        self.write_paragraph(&ANSI::Red, s);
+        write::error(self.state.write_mut(), s);
     }
 
     /// Emit a warning message to the end user.
@@ -298,7 +298,7 @@ where
     /// state except for [`state::Header`].
     #[must_use]
     pub fn warning(mut self, s: impl AsRef<str>) -> Print<S> {
-        self.write_paragraph(&ANSI::Yellow, s);
+        write::warning(self.state.write_mut(), s);
         self
     }
 
@@ -314,41 +314,32 @@ where
     /// [`Print::warning`] instead.
     #[must_use]
     pub fn important(mut self, s: impl AsRef<str>) -> Print<S> {
-        self.write_paragraph(&ANSI::BoldCyan, s);
+        write::important(self.state.write_mut(), s);
         self
     }
+}
 
-    fn write_paragraph(&mut self, color: &ANSI, s: impl AsRef<str>) {
-        let io = self.state.write_mut();
-        let contents = s.as_ref().trim();
-
-        if !io.was_paragraph {
-            writeln_now(io, "");
+impl Print<state::Header<_GlobalWriter>> {
+    /// Create an output struct that uses the configured global writer
+    ///
+    /// To modify the global writer call [global::set_writer]
+    pub fn global() -> Print<state::Header<_GlobalWriter>> {
+        Print {
+            state: state::Header {
+                write: ParagraphInspectWrite {
+                    inner: _GlobalWriter,
+                    was_paragraph: _GlobalWriter.trailing_paragraph(),
+                    newlines_since_last_char: _GlobalWriter.trailing_newline_count(),
+                },
+            },
+            started: None,
         }
-
-        writeln_now(
-            io,
-            ansi_escape::wrap_ansi_escape_each_line(
-                color,
-                prefix_lines(contents, |_, line| {
-                    // Avoid adding trailing whitespace to the line, if there was none already.
-                    // The `\n` case is required since `prefix_lines` uses `str::split_inclusive`,
-                    // which preserves any trailing newline characters if present.
-                    if line.is_empty() || line == "\n" {
-                        String::from("!")
-                    } else {
-                        String::from("! ")
-                    }
-                }),
-            ),
-        );
-        writeln_now(io, "");
     }
 }
 
 impl<W> Print<state::Header<W>>
 where
-    W: Write,
+    W: Write + Send + Sync + 'static,
 {
     /// Create a buildpack output struct, but do not announce the buildpack's start.
     ///
@@ -376,14 +367,8 @@ where
     ///
     /// This function will transition your buildpack output to [`state::Bullet`].
     #[must_use]
-    pub fn h1(mut self, buildpack_name: impl AsRef<str>) -> Print<state::Bullet<W>> {
-        writeln_now(
-            &mut self.state.write,
-            ansi_escape::wrap_ansi_escape_each_line(
-                &ANSI::BoldPurple,
-                format!("\n# {}\n", buildpack_name.as_ref().trim()),
-            ),
-        );
+    pub fn h1(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
+        write::h1(&mut self.state.write, s);
 
         self.without_header()
     }
@@ -401,18 +386,8 @@ where
     ///
     /// This function will transition your buildpack output to [`state::Bullet`].
     #[must_use]
-    pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Print<state::Bullet<W>> {
-        if !self.state.write.was_paragraph {
-            writeln_now(&mut self.state.write, "");
-        }
-
-        writeln_now(
-            &mut self.state.write,
-            ansi_escape::wrap_ansi_escape_each_line(
-                &ANSI::BoldPurple,
-                format!("## {}\n", buildpack_name.as_ref().trim()),
-            ),
-        );
+    pub fn h2(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
+        write::h2(&mut self.state.write, s);
 
         self.without_header()
     }
@@ -433,13 +408,6 @@ impl<W> Print<state::Bullet<W>>
 where
     W: Write + Send + Sync + 'static,
 {
-    const PREFIX_FIRST: &'static str = "- ";
-    const PREFIX_REST: &'static str = "  ";
-
-    fn style(s: impl AsRef<str>) -> String {
-        prefix_first_rest_lines(Self::PREFIX_FIRST, Self::PREFIX_REST, s.as_ref().trim())
-    }
-
     /// A top-level bullet point section
     ///
     /// A section should be a noun, e.g., 'Ruby version'. Anything emitted within the section
@@ -452,7 +420,7 @@ where
     /// This function will transition your buildpack output to [`state::SubBullet`].
     #[must_use]
     pub fn bullet(mut self, s: impl AsRef<str>) -> Print<state::SubBullet<W>> {
-        writeln_now(&mut self.state.write, Self::style(s));
+        write::bullet(&mut self.state.write, s);
 
         Print {
             started: self.started,
@@ -464,34 +432,14 @@ where
 
     /// Outputs an H2 header
     #[must_use]
-    pub fn h2(mut self, buildpack_name: impl AsRef<str>) -> Print<state::Bullet<W>> {
-        if !self.state.write.was_paragraph {
-            writeln_now(&mut self.state.write, "");
-        }
-
-        writeln_now(
-            &mut self.state.write,
-            ansi_escape::wrap_ansi_escape_each_line(
-                &ANSI::BoldPurple,
-                format!("## {}\n", buildpack_name.as_ref().trim()),
-            ),
-        );
-
+    pub fn h2(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
+        write::h2(&mut self.state.write, s);
         self
     }
 
     /// Announce that your buildpack has finished execution successfully.
     pub fn done(mut self) -> W {
-        if let Some(started) = &self.started {
-            let elapsed = duration_format::human(&started.elapsed());
-            let details = style::details(format!("finished in {elapsed}"));
-            writeln_now(
-                &mut self.state.write,
-                Self::style(format!("Done {details}")),
-            );
-        } else {
-            writeln_now(&mut self.state.write, Self::style("Done"));
-        }
+        write::all_done(&mut self.state.write, &self.started);
 
         self.state.write.inner
     }
@@ -574,14 +522,6 @@ impl<W> Print<state::SubBullet<W>>
 where
     W: Write + Send + Sync + 'static,
 {
-    const PREFIX_FIRST: &'static str = "  - ";
-    const PREFIX_REST: &'static str = "    ";
-    const CMD_INDENT: &'static str = "      ";
-
-    fn style(s: impl AsRef<str>) -> String {
-        prefix_first_rest_lines(Self::PREFIX_FIRST, Self::PREFIX_REST, s.as_ref().trim())
-    }
-
     /// Emit a sub bullet point step in the output under a bullet point.
     ///
     /// A step should be a verb, i.e., 'Downloading'. Related verbs should be nested under a single section.
@@ -607,7 +547,7 @@ where
     /// Multiple steps are allowed within a section. This function returns to the same [`state::SubBullet`].
     #[must_use]
     pub fn sub_bullet(mut self, s: impl AsRef<str>) -> Print<state::SubBullet<W>> {
-        writeln_now(&mut self.state.write, Self::style(s));
+        write::sub_bullet(&mut self.state.write, s);
         self
     }
 
@@ -624,7 +564,7 @@ where
     /// This function will transition your buildpack output to [`state::Stream`].
     #[must_use]
     pub fn start_stream(mut self, s: impl AsRef<str>) -> Print<state::Stream<W>> {
-        writeln_now(&mut self.state.write, Self::style(s));
+        write::sub_bullet(&mut self.state.write, s);
         writeln_now(&mut self.state.write, "");
 
         Print {
@@ -637,7 +577,7 @@ where
                     if line.is_empty() || line == [b'\n'] {
                         line
                     } else {
-                        let mut result: Vec<u8> = Self::CMD_INDENT.into();
+                        let mut result: Vec<u8> = CMD_INDENT.into();
                         result.append(&mut line);
                         result
                     }
@@ -658,45 +598,9 @@ where
     /// This function will transition your buildpack output to [`state::Background`].
     #[allow(clippy::missing_panics_doc)]
     #[must_use]
+    #[allow(unused_mut)]
     pub fn start_timer(mut self, s: impl AsRef<str>) -> Print<state::Background<W>> {
-        // Do not emit a newline after the message
-        write!(self.state.write, "{}", Self::style(s)).expect("Output error: UI writer closed");
-        self.state
-            .write
-            .flush()
-            .expect("Output error: UI writer closed");
-
-        Print {
-            started: self.started,
-            state: state::Background {
-                started: Instant::now(),
-                write: background_printer::print_interval(
-                    self.state.write,
-                    std::time::Duration::from_secs(1),
-                    ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, " ."),
-                    ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, "."),
-                    ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, ". "),
-                    "(Error)".to_string(),
-                ),
-            },
-        }
-    }
-
-    fn format_stream_writer<S>(stream_to: S) -> crate::write::MappedWrite<S>
-    where
-        S: Write + Send + Sync,
-    {
-        line_mapped(stream_to, |mut line| {
-            // Avoid adding trailing whitespace to the line, if there was none already.
-            // The `[b'\n']` case is required since `line` includes the trailing newline byte.
-            if line.is_empty() || line == [b'\n'] {
-                line
-            } else {
-                let mut result: Vec<u8> = Self::CMD_INDENT.into();
-                result.append(&mut line);
-                result
-            }
-        })
+        write::sub_start_timer(self.state.write, Instant::now(), s)
     }
 
     /// Stream two inputs without consuming
@@ -731,48 +635,12 @@ where
     /// output.done().done();
     /// ```
     #[allow(clippy::missing_panics_doc)]
-    pub fn stream_with<F, T>(&mut self, s: impl AsRef<str>, mut f: F) -> T
+    pub fn stream_with<F, T>(&mut self, s: impl AsRef<str>, f: F) -> T
     where
         F: FnMut(Box<dyn Write + Send + Sync>, Box<dyn Write + Send + Sync>) -> T,
         T: 'static,
     {
-        writeln_now(&mut self.state.write, Self::style(s));
-        writeln_now(&mut self.state.write, "");
-
-        let duration = Instant::now();
-        mpsc_stream_to_output(
-            |sender| {
-                f(
-                    // The Senders are boxed to hide the types from the caller so it can be changed
-                    // in the future. They only need to know they have a `Write + Send + Sync` type.
-                    Box::new(Self::format_stream_writer(sender.clone())),
-                    Box::new(Self::format_stream_writer(sender.clone())),
-                )
-            },
-            move |recv| {
-                // When it receives input, it writes it to the current `Write` value.
-                //
-                // When the senders close their channel this loop will exit
-                for message in recv {
-                    self.state
-                        .write
-                        .write_all(&message)
-                        .expect("Writer to not be closed");
-                }
-
-                if !self.state.write_mut().was_paragraph {
-                    writeln_now(&mut self.state.write, "");
-                }
-
-                writeln_now(
-                    &mut self.state.write,
-                    Self::style(format!(
-                        "Done {}",
-                        style::details(duration_format::human(&duration.elapsed()))
-                    )),
-                );
-            },
-        )
+        write::sub_stream_with(&mut self.state.write, s, f)
     }
 
     /// Finish a section and transition back to [`state::Bullet`].
@@ -845,7 +713,7 @@ mod test {
     use fun_run::CommandWithName;
     use indoc::formatdoc;
     use libcnb_test::assert_contains;
-    use std::fs::File;
+    use std::{cell::RefCell, fs::File};
 
     #[test]
     fn double_h2_h2_newlines() {
@@ -1181,6 +1049,58 @@ mod test {
               - The jumping fountains are great
               - The music is nice here
             - Done (finished in < 0.1s)
+        "};
+
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
+    }
+
+    thread_local! {
+        static THREAD_LOCAL_WRITER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+    }
+
+    struct V8ThreadedWriter;
+    impl V8ThreadedWriter {
+        fn take() -> Vec<u8> {
+            THREAD_LOCAL_WRITER.take()
+        }
+    }
+    impl Write for V8ThreadedWriter {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            THREAD_LOCAL_WRITER.with_borrow_mut(|writer| writer.write(buf))
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            THREAD_LOCAL_WRITER.with_borrow_mut(|writer| writer.flush())
+        }
+    }
+
+    #[test]
+    fn global_preserves_newline() {
+        global::set_writer(V8ThreadedWriter);
+
+        Print::global()
+            .h1("Genuine Joes")
+            .bullet("Dodge")
+            .sub_bullet("A ball")
+            .error("A wrench");
+
+        Print::global()
+            .without_header()
+            .error("It's a bold strategy, Cotton.\nLet's see if it pays off for 'em.");
+
+        let io = V8ThreadedWriter::take();
+        let expected = formatdoc! {"
+
+            # Genuine Joes
+
+            - Dodge
+              - A ball
+
+            ! A wrench
+
+            ! It's a bold strategy, Cotton.
+            ! Let's see if it pays off for 'em.
+
         "};
 
         assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
