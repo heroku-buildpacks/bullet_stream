@@ -24,7 +24,7 @@ use util::TrailingParagraph;
 /// ```rust
 /// use bullet_stream::Print;
 ///
-/// let mut output = Print::new(std::io::stdout())
+/// let mut output = Print::global()
 ///     .h2("Example Buildpack")
 ///     .warning("No Gemfile.lock found");
 ///
@@ -73,7 +73,7 @@ pub mod state {
     /// use bullet_stream::{Print, state::{Bullet, Header}};
     /// use std::io::Write;
     ///
-    /// let mut not_started = Print::new(std::io::stdout());
+    /// let mut not_started = Print::global();
     /// let output = start_buildpack(not_started);
     ///
     /// output.bullet("Ruby version").sub_bullet("Installing Ruby").done();
@@ -102,7 +102,7 @@ pub mod state {
     /// use std::io::Write;
     /// use std::path::{Path, PathBuf};
     ///
-    /// let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+    /// let mut output = Print::global().h2("Example Buildpack");
     ///
     /// output = install_ruby(&PathBuf::from("/dev/null"), output)
     ///     .unwrap()
@@ -137,7 +137,7 @@ pub mod state {
     /// use bullet_stream::{Print, state::{Bullet, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Print::new(std::io::stdout())
+    /// let mut output = Print::global()
     ///     .h2("Example Buildpack")
     ///     .bullet("Ruby version");
     ///
@@ -166,7 +166,7 @@ pub mod state {
     /// use bullet_stream::{Print, state::{Bullet, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Print::new(std::io::stdout())
+    /// let mut output = Print::global()
     ///     .h2("Example Buildpack")
     ///     .bullet("Ruby version");
     ///
@@ -197,7 +197,7 @@ pub mod state {
     /// use bullet_stream::{Print, state::{Bullet, SubBullet}};
     /// use std::io::Write;
     ///
-    /// let mut output = Print::new(std::io::stdout())
+    /// let mut output = Print::global()
     ///     .h2("Example Buildpack")
     ///     .bullet("Ruby version");
     ///
@@ -613,7 +613,7 @@ where
     /// use fun_run::CommandWithName;
     /// use std::process::Command;
     ///
-    /// let mut output = Print::new(std::io::stdout())
+    /// let mut output = Print::global()
     ///     .h2("Example Buildpack")
     ///     .bullet("Streaming");
     ///
@@ -666,7 +666,7 @@ where
     /// use fun_run::CommandWithName;
     /// use std::process::Command;
     ///
-    /// let mut output = Print::new(std::io::stdout())
+    /// let mut output = Print::global()
     ///     .h2("Example Buildpack")
     ///     .bullet("Streaming");
     ///
@@ -701,7 +701,7 @@ where
     /// use fun_run::CommandWithName;
     /// use std::process::Command;
     ///
-    /// let mut output = Print::new(std::io::stdout())
+    /// let mut output = Print::global()
     ///     .h2("Example Buildpack")
     ///     .bullet("Streaming");
     ///

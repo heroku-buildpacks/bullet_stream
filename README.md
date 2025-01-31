@@ -24,7 +24,7 @@ is intended to be read by the end user.
 ```rust
 use bullet_stream::Print;
 
-let mut output = Print::new(std::io::stdout())
+let mut output = Print::global()
     .h2("Example Buildpack")
     .warning("No Gemfile.lock found");
 
@@ -76,7 +76,7 @@ The library design relies on a consuming struct design to guarantee output consi
 ```rust
 use bullet_stream::Print;
 
-let mut log = Print::new(std::io::stderr()).h1("Building Ruby");
+let mut log = Print::global().h1("Building Ruby");
 log = {
     let mut bullet = log.bullet("Doing things");
     // ..
@@ -109,12 +109,12 @@ use bullet_stream::{
     Print,
 };
 use std::path::{Path, PathBuf};
-use std::io::Stdout;
+use std::io::Stderr;
 
 fn install_ruby(
-    mut output: Print<Bullet<Stdout>>,
+    mut output: Print<Bullet<Stderr>>,
     path: &Path,
-) -> Result<Print<SubBullet<Stdout>>, std::io::Error>
+) -> Result<Print<SubBullet<Stderr>>, std::io::Error>
 {
     todo!();
 }
@@ -124,12 +124,12 @@ If that's still too much typing for you, you can simplify more with type aliases
 
 ```rust
 use bullet_stream::{Print, state};
-use std::io::Stdout;
+use std::io::Stderr;
 use std::path::Path;
 
-pub(crate) type Header = Print<state::Header<Stdout>>;
-pub(crate) type Bullet = Print<state::Bullet<Stdout>>;
-pub(crate) type SubBullet = Print<state::SubBullet<Stdout>>;
+pub(crate) type Header = Print<state::Header<Stderr>>;
+pub(crate) type Bullet = Print<state::Bullet<Stderr>>;
+pub(crate) type SubBullet = Print<state::SubBullet<Stderr>>;
 
 fn install_ruby(
     mut output: Bullet,
@@ -139,6 +139,10 @@ fn install_ruby(
     todo!();
 }
 ```
+
+
+>note
+> Why stderr and not stdout? Bullet point text is for is for humans and so is stderr! Use stdout for output that can be read by people AND you want piped to another command.
 
 ### Push logic down, bubble information (to output) up
 
@@ -163,7 +167,7 @@ fn install_ruby_version(version: impl AsRef<str>) -> Result<(), std::io::Error> 
     Ok(())
 }
 
-let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+let mut output = Print::global().h2("Example Buildpack");
 
 // Bubble up data
 let version = std::fs::read_to_string(std::path::Path::new("/dev/null"))
@@ -192,14 +196,14 @@ use bullet_stream::{
     state::{Bullet, SubBullet},
     Print, style
 };
-use std::io::Stdout;
+use std::io::Stderr;
 use std::path::Path;
 
 /// Large function signature, it works but might not always be needed
 fn install_ruby(
-    mut output: Print<Bullet<Stdout>>,
+    mut output: Print<Bullet<Stderr>>,
     path: &Path,
-) -> Result<(Print<SubBullet<Stdout>>, String), std::io::Error>
+) -> Result<(Print<SubBullet<Stderr>>, String), std::io::Error>
 {
     let version = std::fs::read_to_string(path)?
         .trim()
@@ -212,7 +216,7 @@ fn install_ruby(
     Ok((timer.done(), version))
 }
 
-let mut output = Print::new(std::io::stdout()).h2("Example Buildpack");
+let mut output = Print::new(std::io::stderr()).h2("Example Buildpack");
 
 let (bullet, version) = install_ruby(output, &Path::new("/dev/null"))
     .unwrap();

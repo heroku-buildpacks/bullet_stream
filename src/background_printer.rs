@@ -87,7 +87,7 @@ where
         // the case. The printer can still emit a value after it's told to stop.
         //
         // When that happens the output can appear in the middle of another output, such
-        // as an error message if a global writer is being used such as stdout.
+        // as an error message if a global writer is being used such as stderr.
         // As a result we have to signal AND ensure the thread is stopped before
         // continuing.
         if let Some(join_handle) = self.join_handle.take() {
