@@ -18,8 +18,7 @@ Add `bullet_stream` to your project:
 $ cargo add bullet_stream
 ```
 
-Now use [`Print`] to output structured text as a script/buildpack executes. The output
-is intended to be read by the end user.
+Now use [`Print`] to output structured text as a script/buildpack executes. The output is intended to be read by the end user.
 
 ```rust
 use bullet_stream::Print;
