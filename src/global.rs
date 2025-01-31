@@ -178,6 +178,26 @@ pub mod print {
         write::sub_stream_with(&mut _GlobalWriter, s, f)
     }
 
+    /// Print the name of a command then stream it
+    ///
+    /// This provieds convienence and standardization over [sub_stream_with]
+    ///
+    /// ```no_run
+    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use fun_run::CommandWithName;
+    ///
+    /// print::sub_stream_cmd(
+    ///     std::process::Command::new("bash")
+    ///         .args(["-c", "echo 'hello world'"])
+    /// ).unwrap();
+    /// ```
+    #[cfg(feature = "fun_run")]
+    pub fn sub_stream_cmd(
+        command: impl fun_run::CommandWithName,
+    ) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
+        write::sub_stream_cmd(&mut _GlobalWriter, command)
+    }
+
     /// Print a sub-bullet and then emmit dots to the global writer without state
     ///
     /// ```
@@ -194,6 +214,29 @@ pub mod print {
     /// ```
     pub fn sub_start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
         write::sub_start_timer(ParagraphInspectWrite::new(_GlobalWriter), Instant::now(), s)
+    }
+
+    /// Prints the name of a command and times (with dots) it in the background
+    ///
+    /// Does not show the output of the command. If you need that use [sub_stream_cmd]
+    ///
+    /// Provides convience and standardization over [sub_start_timer].
+    ///
+    /// ```no_run
+    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use fun_run::CommandWithName;
+    ///
+    /// print::sub_time_cmd(
+    ///     std::process::Command::new("bash")
+    ///         .args(["-c", "echo 'hello world'"])
+    /// ).unwrap();
+    /// ```
+    ///
+    #[cfg(feature = "fun_run")]
+    pub fn sub_time_cmd(
+        command: impl fun_run::CommandWithName,
+    ) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
+        write::sub_time_cmd(ParagraphInspectWrite::new(_GlobalWriter), command)
     }
 
     /// Print an all done message with timing info to the UI

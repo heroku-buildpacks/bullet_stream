@@ -28,6 +28,12 @@ pub fn details(contents: impl AsRef<str>) -> String {
     format!("({contents})")
 }
 
+/// Verb-ify command output i.e. "Running `bundle install`".
+#[cfg(feature = "fun_run")]
+pub(crate) fn running_command(contents: impl AsRef<str>) -> String {
+    format!("Running {}", command(contents))
+}
+
 /// Decorate important information.
 ///
 /// ```

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A `fun_run` feature to provide optional interfaces when the `fun_run` crate is being used. PR: (https://github.com/heroku-buildpacks/bullet_stream/pull/25)
+  - Added: `global::print::sub_stream_cmd` and `global::print::sub_time_cmd`
+  - Added: `Print<SubBullet<W>>::stream_cmd()` and `Print<SubBullet<W>>::time_cmd()`
+
 ## v0.4.0 - 2025/01/21
 
 - Fix: dropping `Print<Background<W>>` now emits a message of `(Error)` and a newline (https://github.com/heroku-buildpacks/bullet_stream/pull/20)

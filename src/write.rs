@@ -1,4 +1,5 @@
 use crate::ansi_escape::ANSI;
+use crate::background_printer::PrintGuard;
 use crate::util::{
     format_stream_writer, mpsc_stream_to_output, prefix_first_rest_lines, prefix_lines,
     ParagraphInspectWrite, TrailingParagraph, TrailingParagraphSend,
@@ -71,6 +72,36 @@ pub(crate) fn sub_bullet_prefix(s: impl AsRef<str>) -> String {
     prefix_first_rest_lines("  - ", "    ", s.as_ref().trim())
 }
 
+#[cfg(feature = "fun_run")]
+pub(crate) fn sub_stream_cmd<W: TrailingParagraphSend>(
+    writer: &mut W,
+    mut command: impl fun_run::CommandWithName,
+) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
+    sub_stream_with(
+        writer,
+        crate::style::running_command(command.name()),
+        |stdout, stderr| command.stream_output(stdout, stderr),
+    )
+}
+
+#[cfg(feature = "fun_run")]
+pub fn sub_time_cmd<W>(
+    writer: ParagraphInspectWrite<W>,
+    mut command: impl fun_run::CommandWithName,
+) -> Result<fun_run::NamedOutput, fun_run::CmdError>
+where
+    W: Write + Send + Sync + 'static,
+{
+    let timer = sub_start_timer(
+        writer,
+        Instant::now(),
+        style::running_command(command.name()),
+    );
+    let output = command.named_output();
+    let _ = timer.done();
+    output
+}
+
 pub(crate) fn sub_stream_with<W, T, F>(writer: &mut W, s: impl AsRef<str>, mut f: F) -> T
 where
     W: TrailingParagraphSend,
@@ -114,31 +145,40 @@ where
 }
 
 pub(crate) fn sub_start_timer<W>(
-    mut writer: ParagraphInspectWrite<W>,
+    writer: ParagraphInspectWrite<W>,
     started: Instant,
     s: impl AsRef<str>,
 ) -> Print<state::Background<W>>
 where
     W: Write + Send + Sync + 'static,
 {
-    // Do not emit a newline after the message
-    write!(&mut writer, "{}", sub_bullet_prefix(s)).expect("writer not to be closed");
-    writer.flush().expect("Output error: UI writer closed");
+    let guard = sub_start_print_interval(writer, s);
 
     Print {
         started: Some(started),
         state: state::Background {
             started: Instant::now(),
-            write: background_printer::print_interval(
-                writer,
-                std::time::Duration::from_secs(1),
-                ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, " ."),
-                ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, "."),
-                ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, ". "),
-                "(Error)".to_string(),
-            ),
+            write: guard,
         },
     }
+}
+
+pub(crate) fn sub_start_print_interval<W: Write + Send + Sync + 'static>(
+    mut writer: W,
+    s: impl AsRef<str>,
+) -> PrintGuard<W> {
+    // Do not emit a newline after the message
+    write!(&mut writer, "{}", sub_bullet_prefix(s)).expect("writer not to be closed");
+    writer.flush().expect("Output error: UI writer closed");
+
+    background_printer::print_interval(
+        writer,
+        std::time::Duration::from_secs(1),
+        ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, " ."),
+        ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, "."),
+        ansi_escape::wrap_ansi_escape_each_line(&ANSI::Dim, ". "),
+        "(Error)".to_string(),
+    )
 }
 
 pub(crate) fn all_done<W: Write>(writer: &mut W, started: &Option<Instant>) {
@@ -318,7 +358,11 @@ impl<W: io::Write + Debug> Debug for MappedWrite<W> {
 
 #[cfg(test)]
 mod test {
-    use crate::write::line_mapped;
+    use super::*;
+    use crate::{strip_ansi, util::LockedWriter, write::line_mapped};
+    use indoc::formatdoc;
+    use pretty_assertions::assert_eq;
+    use std::process::Command;
 
     #[test]
     fn test_mapped_write() {
@@ -332,5 +376,55 @@ mod test {
         .unwrap();
 
         assert_eq!(output, "foo\nfoo\nbar\nbar\nbazbaz".as_bytes());
+    }
+
+    #[test]
+    fn test_stream_cmd() {
+        let writer = LockedWriter::new(Vec::new());
+        let reader = writer.clone();
+        self::sub_stream_cmd(
+            &mut ParagraphInspectWrite::new(writer),
+            Command::new("bash").arg("-c").arg("echo hello"),
+        )
+        .unwrap();
+
+        let expected = formatdoc! {"
+            - Running `bash -c \"echo hello\"`
+
+                hello
+
+            - Done (< 0.1s)
+
+        "};
+        assert_eq!(
+            expected
+                .trim_start()
+                .lines()
+                .map(|line| if line.is_empty() {
+                    String::new()
+                } else {
+                    format!("  {line}")
+                })
+                .collect::<Vec<String>>()
+                .join("\n"),
+            strip_ansi(String::from_utf8_lossy(&reader.unwrap()))
+        )
+    }
+
+    #[test]
+    fn test_time_cmd() {
+        let writer = LockedWriter::new(Vec::new());
+        let reader = writer.clone();
+        self::sub_time_cmd(
+            ParagraphInspectWrite::new(writer),
+            Command::new("bash").arg("-c").arg("echo hello"),
+        )
+        .unwrap();
+
+        let expected = "- Running `bash -c \"echo hello\"` ... (< 0.1s)";
+        assert_eq!(
+            expected.trim(),
+            strip_ansi(String::from_utf8_lossy(&reader.unwrap())).trim()
+        )
     }
 }
