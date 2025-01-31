@@ -14,7 +14,7 @@ pub mod style;
 mod util;
 mod write;
 pub use ansi_escape::strip_ansi;
-use global::_GlobalWriter;
+use global::GlobalWriter;
 use style::CMD_INDENT;
 use util::TrailingParagraph;
 
@@ -319,17 +319,17 @@ where
     }
 }
 
-impl Print<state::Header<_GlobalWriter>> {
+impl Print<state::Header<GlobalWriter>> {
     /// Create an output struct that uses the configured global writer
     ///
     /// To modify the global writer call [global::set_writer]
-    pub fn global() -> Print<state::Header<_GlobalWriter>> {
+    pub fn global() -> Print<state::Header<GlobalWriter>> {
         Print {
             state: state::Header {
                 write: ParagraphInspectWrite {
-                    inner: _GlobalWriter,
-                    was_paragraph: _GlobalWriter.trailing_paragraph(),
-                    newlines_since_last_char: _GlobalWriter.trailing_newline_count(),
+                    inner: GlobalWriter,
+                    was_paragraph: GlobalWriter.trailing_paragraph(),
+                    newlines_since_last_char: GlobalWriter.trailing_newline_count(),
                 },
             },
             started: None,

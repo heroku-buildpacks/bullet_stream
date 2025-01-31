@@ -8,9 +8,22 @@ use std::sync::Mutex;
 static WRITER: LazyLock<Mutex<Box<dyn TrailingParagraphSend>>> =
     LazyLock::new(|| Mutex::new(Box::new(ParagraphInspectWrite::new(std::io::stderr()))));
 
-#[doc(hidden)]
-pub struct _GlobalWriter;
-impl Write for _GlobalWriter {
+/// A marker struct for writing to a global writer
+///
+/// Use [set_writer] to change the destination.
+///
+/// It is okay to rely on this struct as a `W` for the [crate::Print::global()]
+/// return type like `Print<SubBullet<GlobalWriter>>`. You shouldn't use it
+/// much outside of that. Its behavior may change.
+///
+/// To avoid this struct from showing up in your interfaces you can use
+/// generics `W: Write + Send + Sync + 'static` instead.
+pub struct GlobalWriter;
+
+#[deprecated(since = "0.5.0", note = "_GlobalWriter use GlobalWriter instead")]
+pub type _GlobalWriter = GlobalWriter;
+
+impl Write for GlobalWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let mut w = WRITER.lock().unwrap();
         w.write(buf)
@@ -22,7 +35,7 @@ impl Write for _GlobalWriter {
     }
 }
 
-impl TrailingParagraph for _GlobalWriter {
+impl TrailingParagraph for GlobalWriter {
     fn trailing_paragraph(&self) -> bool {
         let w = WRITER.lock().unwrap();
         w.trailing_paragraph()
@@ -47,7 +60,7 @@ pub fn set_writer<W>(new_writer: W)
 where
     W: Write + Send + 'static,
 {
-    if std::any::Any::type_id(&new_writer) == std::any::TypeId::of::<_GlobalWriter>() {
+    if std::any::Any::type_id(&new_writer) == std::any::TypeId::of::<GlobalWriter>() {
         panic!("Cannot set the global writer to _GlobalWriter");
     } else {
         let mut writer = WRITER.lock().unwrap();
@@ -100,7 +113,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn h1(s: impl AsRef<str>) {
-        write::h1(&mut _GlobalWriter, s);
+        write::h1(&mut GlobalWriter, s);
     }
 
     /// Output a h2 header to the global writer without state
@@ -123,7 +136,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn h2(s: impl AsRef<str>) {
-        write::h2(&mut _GlobalWriter, s);
+        write::h2(&mut GlobalWriter, s);
     }
 
     /// Output a bullet point to the global writer without state
@@ -137,7 +150,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn bullet(s: impl AsRef<str>) {
-        write::bullet(&mut _GlobalWriter, s)
+        write::bullet(&mut GlobalWriter, s)
     }
 
     /// Output a sub-bullet point to the global writer without state
@@ -154,7 +167,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn sub_bullet(s: impl AsRef<str>) {
-        write::sub_bullet(&mut _GlobalWriter, s);
+        write::sub_bullet(&mut GlobalWriter, s);
     }
 
     /// Print a sub-bullet and stream a command to the global writer without state
@@ -175,7 +188,7 @@ pub mod print {
         F: FnMut(Box<dyn Write + Send + Sync>, Box<dyn Write + Send + Sync>) -> T,
         T: 'static,
     {
-        write::sub_stream_with(&mut _GlobalWriter, s, f)
+        write::sub_stream_with(&mut GlobalWriter, s, f)
     }
 
     /// Print the name of a command then stream it
@@ -195,7 +208,7 @@ pub mod print {
     pub fn sub_stream_cmd(
         command: impl fun_run::CommandWithName,
     ) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
-        write::sub_stream_cmd(&mut _GlobalWriter, command)
+        write::sub_stream_cmd(&mut GlobalWriter, command)
     }
 
     /// Print a sub-bullet and then emmit dots to the global writer without state
@@ -213,7 +226,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn sub_start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
-        write::sub_start_timer(ParagraphInspectWrite::new(_GlobalWriter), Instant::now(), s)
+        write::sub_start_timer(ParagraphInspectWrite::new(GlobalWriter), Instant::now(), s)
     }
 
     /// Prints the name of a command and times (with dots) it in the background
@@ -236,7 +249,7 @@ pub mod print {
     pub fn sub_time_cmd(
         command: impl fun_run::CommandWithName,
     ) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
-        write::sub_time_cmd(ParagraphInspectWrite::new(_GlobalWriter), command)
+        write::sub_time_cmd(ParagraphInspectWrite::new(GlobalWriter), command)
     }
 
     /// Print an all done message with timing info to the UI
@@ -256,7 +269,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn all_done(started: &Option<Instant>) {
-        write::all_done(&mut _GlobalWriter, started);
+        write::all_done(&mut GlobalWriter, started);
     }
 
     /// Print a warning to the global writer without state
@@ -274,7 +287,7 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn warning(s: impl AsRef<str>) {
-        write::warning(&mut _GlobalWriter, s);
+        write::warning(&mut GlobalWriter, s);
     }
 
     /// Print an error to the global writer without state
@@ -300,6 +313,6 @@ pub mod print {
     #[doc = include_str!("./docs/global_done_two.rs")]
     /// ```
     pub fn error(s: impl AsRef<str>) {
-        write::error(&mut _GlobalWriter, s);
+        write::error(&mut GlobalWriter, s);
     }
 }
