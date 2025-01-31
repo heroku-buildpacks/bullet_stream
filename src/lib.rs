@@ -603,6 +603,54 @@ where
         write::sub_start_timer(self.state.write, Instant::now(), s)
     }
 
+    /// Print command name and run it quietly (don't stream) while emitting timing dots
+    ///
+    /// Provides convience and standardization. If you want to stream the output
+    /// see [Self::stream_cmd].
+    ///
+    /// ```no_run
+    /// use bullet_stream::{style, Print};
+    /// use fun_run::CommandWithName;
+    /// use std::process::Command;
+    ///
+    /// let mut output = Print::new(std::io::stdout())
+    ///     .h2("Example Buildpack")
+    ///     .bullet("Streaming");
+    ///
+    /// // Use the result of the timed command
+    /// let result = output.time_cmd(
+    ///     Command::new("echo")
+    ///         .arg("hello world")
+    /// );
+    ///
+    /// output.done().done();
+    /// ```
+    #[cfg(feature = "fun_run")]
+    #[allow(unused_mut)]
+    pub fn time_cmd(
+        &mut self,
+        mut command: impl fun_run::CommandWithName,
+    ) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
+        util::mpsc_stream_to_output(
+            |sender| {
+                let start = Instant::now();
+                let background =
+                    write::sub_start_print_interval(sender, style::running_command(command.name()));
+                let output = command.named_output();
+                writeln_now(
+                    &mut background.stop().expect("constructed with valid state"),
+                    style::details(duration_format::human(&start.elapsed())),
+                );
+                output
+            },
+            move |recv| {
+                for message in recv {
+                    self.state.write.write_all(&message).expect("Writeable");
+                }
+            },
+        )
+    }
+
     /// Stream two inputs without consuming
     ///
     /// The `start_stream` returns a single writer, but running a command often requires two.
@@ -612,7 +660,6 @@ where
     /// The return value is returned from the function.
     ///
     /// Example:
-    ///
     ///
     /// ```no_run
     /// use bullet_stream::{style, Print};
@@ -641,6 +688,37 @@ where
         T: 'static,
     {
         write::sub_stream_with(&mut self.state.write, s, f)
+    }
+
+    /// Announce and run a command while streaming its output
+    ///
+    /// Provides convience and standardization. To run without streaming see [Self::time_cmd].
+    ///
+    /// Example:
+    ///
+    /// ```no_run
+    /// use bullet_stream::{style, Print};
+    /// use fun_run::CommandWithName;
+    /// use std::process::Command;
+    ///
+    /// let mut output = Print::new(std::io::stdout())
+    ///     .h2("Example Buildpack")
+    ///     .bullet("Streaming");
+    ///
+    /// // Use the result of the Streamed command
+    /// let result = output.stream_cmd(
+    ///     Command::new("echo")
+    ///         .arg("hello world")
+    /// );
+    ///
+    /// output.done().done();
+    /// ```
+    #[cfg(feature = "fun_run")]
+    pub fn stream_cmd(
+        &mut self,
+        command: impl fun_run::CommandWithName,
+    ) -> Result<fun_run::NamedOutput, fun_run::CmdError> {
+        write::sub_stream_cmd(&mut self.state.write, command)
     }
 
     /// Finish a section and transition back to [`state::Bullet`].
@@ -713,7 +791,8 @@ mod test {
     use fun_run::CommandWithName;
     use indoc::formatdoc;
     use libcnb_test::assert_contains;
-    use std::{cell::RefCell, fs::File};
+    use pretty_assertions::assert_eq;
+    use std::{cell::RefCell, fs::File, process::Command};
 
     #[test]
     fn double_h2_h2_newlines() {
@@ -1138,6 +1217,42 @@ mod test {
             - Done (finished in < 0.1s)
         "};
 
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
+    }
+
+    #[test]
+    fn test_cmd() {
+        let writer = Vec::new();
+        let mut bullet = Print::new(writer)
+            .h2("You must obey the dance commander")
+            .bullet("Giving out the order for fun");
+
+        bullet
+            .stream_cmd(
+                Command::new("bash")
+                    .arg("-c")
+                    .arg("echo it would be awesome"),
+            )
+            .unwrap();
+
+        bullet
+            .time_cmd(Command::new("bash").arg("-c").arg("echo if we could dance"))
+            .unwrap();
+
+        let io = bullet.done().done();
+        let expected = formatdoc! {"
+
+            ## You must obey the dance commander
+
+            - Giving out the order for fun
+              - Running `bash -c \"echo it would be awesome\"`
+
+                  it would be awesome
+
+              - Done (< 0.1s)
+              - Running `bash -c \"echo if we could dance\"` ... (< 0.1s)
+            - Done (finished in < 0.1s)
+        "};
         assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 }

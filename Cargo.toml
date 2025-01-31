@@ -10,16 +10,20 @@ documentation = "https://docs.rs/bullet_stream"
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md"]
 
+[dependencies]
+fun_run = { version = "0.4", optional = true }
+
 [dev-dependencies]
-fun_run = "0.2.0"
+fun_run = "0.4"
 indoc = "2.0.5"
 tempfile = "3.13.0"
 libcnb-test = "0.23.0"
 ascii_table = { version = "4.0.4", features = ["color_codes"] }
+pretty_assertions = "1.4"
 
 [features]
 # Allow stateless printing
 global_functions = []
 
 # Enable global_functions by default
-default = ["global_functions"]
+default = ["global_functions", "fun_run"]
