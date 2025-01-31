@@ -34,6 +34,18 @@ output = output
 output.done();
 ```
 
+Or for a more flexible experience use the provided global function interface:
+
+```rust
+use bullet_stream::global::print;
+
+let started = std::time::Instant::now();
+print::h2("Example Buildpack");
+print::warning("No Gemfile.lock found");
+print::bullet("Ruby version");
+print::all_done(&Some(started));
+```
+
 ## Living style guide
 
 To view the output format and read a living style guide, you can run:
