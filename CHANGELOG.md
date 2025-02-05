@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added: `Print<T>::error()` now returns the original writer `W`, this allows for building error messages (`Vec<u8>`) with debug output above it using the stateful API. See the tests for an example (https://github.com/heroku-buildpacks/bullet_stream/pull/28)
+
 ## v0.5.0 - 2025/01/31
 
 - A `fun_run` feature to provide optional interfaces when the `fun_run` crate is being used. PR: (https://github.com/heroku-buildpacks/bullet_stream/pull/25)

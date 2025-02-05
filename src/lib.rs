@@ -339,8 +339,9 @@ where
     }
 
     #[doc = include_str!("docs/stateful_error.md")]
-    pub fn error(mut self, s: impl AsRef<str>) {
+    pub fn error(mut self, s: impl AsRef<str>) -> W {
         write::error(&mut self.state.write, s);
+        self.state.write.inner
     }
 
     #[must_use]
@@ -642,8 +643,9 @@ where
     }
 
     #[doc = include_str!("docs/stateful_error.md")]
-    pub fn error(mut self, s: impl AsRef<str>) {
+    pub fn error(mut self, s: impl AsRef<str>) -> W {
         write::error(&mut self.state.write, s);
+        self.state.write.inner
     }
 
     #[must_use]
@@ -878,10 +880,7 @@ mod test {
 
     #[test]
     fn paragraph_color_codes() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        let path = tmpdir.path().join("output.txt");
-
-        Print::new(File::create(&path).unwrap())
+        let io = Print::new(Vec::new())
             .h1("Buildpack Header is Bold Purple")
             .important("Important is bold cyan")
             .warning("Warnings are yellow")
@@ -899,7 +898,7 @@ mod test {
 
         "};
 
-        assert_eq!(expected, std::fs::read_to_string(path).unwrap());
+        assert_eq!(expected, String::from_utf8_lossy(&io));
     }
 
     #[test]
@@ -924,10 +923,7 @@ mod test {
 
     #[test]
     fn test_error() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        let path = tmpdir.path().join("output.txt");
-
-        Print::new(File::create(&path).unwrap())
+        let io = Print::new(Vec::new())
             .h1("Heroku Ruby Buildpack")
             .error("This is an error");
 
@@ -939,7 +935,7 @@ mod test {
 
         "};
 
-        assert_eq!(expected, strip_ansi(std::fs::read_to_string(path).unwrap()));
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
     #[test]
