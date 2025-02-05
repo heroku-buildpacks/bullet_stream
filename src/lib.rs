@@ -220,105 +220,6 @@ pub mod state {
     }
 }
 
-/// Used for announcements such as warning and error states
-trait AnnounceSupportedState {
-    type Inner: Write;
-
-    fn write_mut(&mut self) -> &mut ParagraphInspectWrite<Self::Inner>;
-}
-
-/// Used for announcements such as warning and error states
-impl<W> AnnounceSupportedState for state::SubBullet<W>
-where
-    W: Write,
-{
-    type Inner = W;
-
-    fn write_mut(&mut self) -> &mut ParagraphInspectWrite<Self::Inner> {
-        &mut self.write
-    }
-}
-
-/// Used for announcements such as warning and error states
-impl<W> AnnounceSupportedState for state::Bullet<W>
-where
-    W: Write,
-{
-    type Inner = W;
-
-    fn write_mut(&mut self) -> &mut ParagraphInspectWrite<Self::Inner> {
-        &mut self.write
-    }
-}
-
-/// Used for announcements such as warning and error states
-#[allow(private_bounds)]
-impl<S> Print<S>
-where
-    S: AnnounceSupportedState,
-{
-    /// Emit an error and end the build output.
-    ///
-    /// When an unrecoverable situation is encountered, you can emit an error message to the user.
-    /// This associated function will consume the build output, so you may only emit one error per
-    /// build output.
-    ///
-    /// An error message should describe what went wrong and why the buildpack cannot continue.
-    /// It is best practice to include debugging information in the error message. For example,
-    /// if a file is missing, consider showing the user the contents of the directory where the
-    /// file was expected to be and the full path of the file.
-    ///
-    /// If you are confident about what action needs to be taken to fix the error, you should include
-    /// that in the error message. Do not write a generic suggestion like "try again later" unless
-    /// you are certain that the error is transient.
-    ///
-    /// If you detect something problematic but not bad enough to halt buildpack execution, consider
-    /// using a [`Print::warning`] instead.
-    ///
-    pub fn error(mut self, s: impl AsRef<str>) {
-        write::error(self.state.write_mut(), s);
-    }
-
-    /// Emit a warning message to the end user.
-    ///
-    /// A warning should be used to emit a message to the end user about a potential problem.
-    ///
-    /// Multiple warnings can be emitted in sequence. The buildpack author should take care not to
-    /// overwhelm the end user with unnecessary warnings.
-    ///
-    /// When emitting a warning, describe the problem to the user, if possible, and tell them how
-    /// to fix it or where to look next.
-    ///
-    /// Warnings should often come with some disabling mechanism, if possible. If the user can turn
-    /// off the warning, that information should be included in the warning message. If you're
-    /// confident that the user should not be able to turn off a warning, consider using a
-    /// [`Print::error`] instead.
-    ///
-    /// Warnings will be output in a multi-line paragraph style. A warning can be emitted from any
-    /// state except for [`state::Header`].
-    #[must_use]
-    pub fn warning(mut self, s: impl AsRef<str>) -> Print<S> {
-        write::warning(self.state.write_mut(), s);
-        self
-    }
-
-    /// Emit an important message to the end user.
-    ///
-    /// When something significant happens but is not inherently negative, you can use an important
-    /// message. For example, if a buildpack detects that the operating system or architecture has
-    /// changed since the last build, it might not be a problem, but if something goes wrong, the
-    /// user should know about it.
-    ///
-    /// Important messages should be used sparingly and only for things the user should be aware of
-    /// but not necessarily act on. If the message is actionable, consider using a
-    /// [`Print::warning`] instead.
-    #[must_use]
-    pub fn important(mut self, s: impl AsRef<str>) -> Print<S> {
-        write::important(self.state.write_mut(), s);
-        self
-    }
-}
-
 impl Print<state::Header<GlobalWriter>> {
     /// Create an output struct that uses the configured global writer
     ///
@@ -434,6 +335,25 @@ where
     #[must_use]
     pub fn h2(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
         write::h2(&mut self.state.write, s);
+        self
+    }
+
+    #[doc = include_str!("docs/stateful_error.md")]
+    pub fn error(mut self, s: impl AsRef<str>) {
+        write::error(&mut self.state.write, s);
+    }
+
+    #[must_use]
+    #[doc = include_str!("docs/stateful_warning.md")]
+    pub fn warning(mut self, s: impl AsRef<str>) -> Self {
+        write::warning(&mut self.state.write, s);
+        self
+    }
+
+    #[must_use]
+    #[doc = include_str!("docs/stateful_important.md")]
+    pub fn important(mut self, s: impl AsRef<str>) -> Self {
+        write::important(&mut self.state.write, s);
         self
     }
 
@@ -721,6 +641,25 @@ where
         write::sub_stream_cmd(&mut self.state.write, command)
     }
 
+    #[doc = include_str!("docs/stateful_error.md")]
+    pub fn error(mut self, s: impl AsRef<str>) {
+        write::error(&mut self.state.write, s);
+    }
+
+    #[must_use]
+    #[doc = include_str!("docs/stateful_warning.md")]
+    pub fn warning(mut self, s: impl AsRef<str>) -> Self {
+        write::warning(&mut self.state.write, s);
+        self
+    }
+
+    #[must_use]
+    #[doc = include_str!("docs/stateful_important.md")]
+    pub fn important(mut self, s: impl AsRef<str>) -> Self {
+        write::important(&mut self.state.write, s);
+        self
+    }
+
     /// Finish a section and transition back to [`state::Bullet`].
     #[must_use]
     pub fn done(self) -> Print<state::Bullet<W>> {
@@ -752,7 +691,7 @@ where
             },
         };
 
-        if !output.state.write_mut().was_paragraph {
+        if !output.state.write.was_paragraph {
             writeln_now(&mut output.state.write, "");
         }
 
