@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.0 - 2025/02/05
+
 - Added: `Print<T>::error()` now returns the original writer `W`, this allows for building error messages (`Vec<u8>`) with debug output above it using the stateful API. See the tests for an example (https://github.com/heroku-buildpacks/bullet_stream/pull/28)
 
 ## v0.5.0 - 2025/01/31
