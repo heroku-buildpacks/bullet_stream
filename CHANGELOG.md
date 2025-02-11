@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.6.1 - 2024/02/11
+
+- Fix: Relax the constraint of `fun_run` optional dependency. Now any version higher than `0.5` and less than `1.0` is will work. (https://github.com/heroku-buildpacks/bullet_stream/pull/30)
+
 ## v0.6.0 - 2025/02/05
 
 - Added: `Print<T>::error()` now returns the original writer `W`, this allows for building error messages (`Vec<u8>`) with debug output above it using the stateful API. See the tests for an example (https://github.com/heroku-buildpacks/bullet_stream/pull/28)
