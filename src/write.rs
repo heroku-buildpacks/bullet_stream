@@ -53,6 +53,27 @@ pub(crate) fn h2<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
     writer.flush().expect("writer open");
 }
 
+pub(crate) fn h3<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
+    if !writer.trailing_paragraph() {
+        writeln!(writer).expect("writer open");
+    }
+
+    writeln!(
+        writer,
+        "{}",
+        ansi_escape::wrap_ansi_escape_each_line(
+            &ANSI::BoldPurple,
+            format!("### {}", s.as_ref().trim()),
+        ),
+    )
+    .expect("writer open");
+
+    if !writer.trailing_paragraph() {
+        writeln!(writer).expect("writer open");
+    }
+    writer.flush().expect("writer open");
+}
+
 pub(crate) fn bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
     writeln!(
         writer,

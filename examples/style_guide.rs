@@ -10,7 +10,6 @@ use std::process::Command;
 fn main() {
     {
         let mut output = Print::global().h1("Living build output style guide");
-
         print::h2("Buildpack Detect output");
         print::bullet(
             "
@@ -35,6 +34,26 @@ fn main() {
             The name like `heroku/dotnet` is already included in the output.
         "});
         print::plain("");
+
+        output = output.h2("Header usage");
+        let mut bullet = output.bullet(formatdoc! {"
+            Header levels
+        "});
+        bullet = bullet.sub_bullet(formatdoc! {"
+            H1: The H1 header appears at most once in a given output.
+        "});
+        bullet = bullet.sub_bullet(formatdoc! {"
+            H2: Buildpacks use H2 for announcing the name of the buildpack.
+
+            Use the full name in title case such as 'Heroku Ruby Buildpack'
+        "});
+        bullet = bullet.sub_bullet(formatdoc! {"
+            H3: The H3 header can be used to add an extra nesting level by breaking
+            up bullet sections.
+
+            Prefer using h2, bullet, and sub-bullet indentation levels when possible.
+        "});
+        output = bullet.done();
 
         output = output.h2("Bullet section features");
         output = output
@@ -139,8 +158,8 @@ fn main() {
     }
     {
         print::h2("You can also print with functions");
-        print::bullet("bullet_stream::global::print");
-        print::sub_bullet("Allows you to bypass Rust's type guarantees and print directly");
+        print::h3("bullet_stream::global::print");
+        print::bullet("Allows you to bypass Rust's type guarantees and print directly");
         print::sub_bullet("Call `global::set_writer` to configure the destination");
         print::warning("WARNING:\n\nThe global functions\nProvide fewer consistency guarantees\n");
         print::sub_bullet("See the `print` module for more info");

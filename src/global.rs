@@ -139,6 +139,31 @@ pub mod print {
         write::h2(&mut GlobalWriter, s);
     }
 
+    /// Output a h3 header to the global writer without state
+    ///
+    /// ```
+    #[doc = include_str!("./docs/global_setup.rs")]
+    /// print::h1("I am a top level header");
+    /// print::h2("I am an h2 header");
+    /// print::h3("I am an h3 header");
+    /// let duration = std::time::Instant::now();
+    /// // ...
+    /// print::all_done(&Some(duration));
+    ///
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// ## I am a top level header
+    ///
+    /// ### I am an h2 header
+    ///
+    /// #### I am an h3 header
+    ///
+    /// - Done (finished in < 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// ```
+    pub fn h3(s: impl AsRef<str>) {
+        write::h3(&mut GlobalWriter, s);
+    }
+
     /// Output plain text
     ///
     /// Like `println!` but it writes to the shared global

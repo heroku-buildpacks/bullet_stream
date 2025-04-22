@@ -289,7 +289,12 @@ where
     #[must_use]
     pub fn h2(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
         write::h2(&mut self.state.write, s);
+        self.without_header()
+    }
 
+    #[must_use]
+    pub fn h3(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
+        write::h3(&mut self.state.write, s);
         self.without_header()
     }
 
@@ -335,6 +340,12 @@ where
     #[must_use]
     pub fn h2(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
         write::h2(&mut self.state.write, s);
+        self
+    }
+
+    #[must_use]
+    pub fn h3(mut self, s: impl AsRef<str>) -> Print<state::Bullet<W>> {
+        write::h3(&mut self.state.write, s);
         self
     }
 
@@ -738,7 +749,10 @@ mod test {
     #[test]
     fn double_h2_h2_newlines() {
         let writer = Vec::new();
-        let output = Print::new(writer).h2("Header 2").h2("Header 2");
+        let output = Print::new(writer)
+            .h2("Header 2")
+            .h2("Header 2")
+            .h3("Header 3");
 
         let io = output.done();
         let expected = formatdoc! {"
@@ -746,6 +760,8 @@ mod test {
             ## Header 2
 
             ## Header 2
+
+            ### Header 3
 
             - Done (finished in < 0.1s)
         "};
@@ -764,6 +780,22 @@ mod test {
             # Header 1
 
             ## Header 2
+
+            - Done (finished in < 0.1s)
+        "};
+
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)))
+    }
+
+    #[test]
+    fn h3_first() {
+        let writer = Vec::new();
+        let output = Print::new(writer).h3("Header 3");
+
+        let io = output.done();
+        let expected = formatdoc! {"
+
+            ### Header 3
 
             - Done (finished in < 0.1s)
         "};
