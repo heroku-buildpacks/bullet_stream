@@ -63,6 +63,11 @@ pub(crate) fn bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
     writer.flush().expect("writer open");
 }
 
+pub(crate) fn plain<W: Write>(writer: &mut W, s: impl AsRef<str>) {
+    writeln!(writer, "{}", s.as_ref()).expect("writer open");
+    writer.flush().expect("writer open");
+}
+
 pub(crate) fn sub_bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
     writeln!(writer, "{}", sub_bullet_prefix(s)).expect("writer open");
     writer.flush().expect("writer open");
