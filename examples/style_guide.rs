@@ -35,25 +35,19 @@ fn main() {
         "});
         print::plain("");
 
-        output = output.h2("Header usage");
-        let mut bullet = output.bullet(formatdoc! {"
-            Header levels
+        print::buildpack("Buildpack Name");
+        print::bullet("Use `print::buildpack()` to announce the name of your buildpack");
+        print::bullet(formatdoc! {"
+            Use the full name in a title case. For example: `heroku/ruby`
+            would become print::buildpack(\"Heroku Ruby Buildpack\");
         "});
-        bullet = bullet.sub_bullet(formatdoc! {"
-            H1: The H1 header appears at most once in a given output.
-        "});
-        bullet = bullet.sub_bullet(formatdoc! {"
-            H2: Buildpacks use H2 for announcing the name of the buildpack.
-
-            Use the full name in title case such as 'Heroku Ruby Buildpack'
-        "});
-        bullet = bullet.sub_bullet(formatdoc! {"
-            H3: The H3 header can be used to add an extra nesting level by breaking
+        print::header("Header");
+        print::bullet(formatdoc! {"
+            You can use `print::header()` to add an extra nesting level by breaking
             up bullet sections.
 
             Prefer using h2, bullet, and sub-bullet indentation levels when possible.
         "});
-        output = bullet.done();
 
         output = output.h2("Bullet section features");
         output = output

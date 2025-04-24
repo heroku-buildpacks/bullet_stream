@@ -58,15 +58,7 @@ pub(crate) fn h3<W: TrailingParagraph>(writer: &mut W, s: impl AsRef<str>) {
         writeln!(writer).expect("writer open");
     }
 
-    writeln!(
-        writer,
-        "{}",
-        ansi_escape::wrap_ansi_escape_each_line(
-            &ANSI::BoldPurple,
-            format!("### {}", s.as_ref().trim()),
-        ),
-    )
-    .expect("writer open");
+    writeln!(writer, "### {}", s.as_ref().trim()).expect("writer open");
 
     if !writer.trailing_paragraph() {
         writeln!(writer).expect("writer open");
