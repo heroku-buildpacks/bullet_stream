@@ -10,7 +10,6 @@ use std::process::Command;
 fn main() {
     {
         let mut output = Print::global().h1("Living build output style guide");
-
         print::h2("Buildpack Detect output");
         print::bullet(
             "
@@ -35,6 +34,20 @@ fn main() {
             The name like `heroku/dotnet` is already included in the output.
         "});
         print::plain("");
+
+        print::buildpack("Buildpack Name");
+        print::bullet("Use `print::buildpack()` to announce the name of your buildpack");
+        print::bullet(formatdoc! {"
+            Use the full name in a title case. For example: `heroku/ruby`
+            would become print::buildpack(\"Heroku Ruby Buildpack\");
+        "});
+        print::header("Header");
+        print::bullet(formatdoc! {"
+            You can use `print::header()` to add an extra nesting level by breaking
+            up bullet sections.
+
+            Prefer using h2, bullet, and sub-bullet indentation levels when possible.
+        "});
 
         output = output.h2("Bullet section features");
         output = output
@@ -139,8 +152,8 @@ fn main() {
     }
     {
         print::h2("You can also print with functions");
-        print::bullet("bullet_stream::global::print");
-        print::sub_bullet("Allows you to bypass Rust's type guarantees and print directly");
+        print::h3("bullet_stream::global::print");
+        print::bullet("Allows you to bypass Rust's type guarantees and print directly");
         print::sub_bullet("Call `global::set_writer` to configure the destination");
         print::warning("WARNING:\n\nThe global functions\nProvide fewer consistency guarantees\n");
         print::sub_bullet("See the `print` module for more info");
