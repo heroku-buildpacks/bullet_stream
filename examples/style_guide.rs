@@ -10,6 +10,32 @@ use std::process::Command;
 fn main() {
     {
         let mut output = Print::global().h1("Living build output style guide");
+
+        print::h2("Buildpack Detect output");
+        print::bullet(
+            "
+            Detect phase is when a buildpack declares if it can run or not.
+        ",
+        );
+        print::sub_bullet("Use `print::plain()` style.");
+        print::sub_bullet(formatdoc! {"
+            When the buildpack can run, nothing should be printed.
+            If the buildpack cannot be run, print the reason why.
+
+            Output should be a sentence with capitalized first letter, ending in a period.
+            Include specific contents required to hint how to fix detection.
+        "});
+        print::bullet("Good detect message:");
+        print::sub_bullet("No solution or project files found (`.sln` or `.csproj`).");
+        print::bullet("Poor detect message:");
+        print::sub_bullet("No project files found.");
+        print::plain("");
+        print::plain(formatdoc! {"
+            FYI: You do not need to repeat the name of your buildpack or language.
+            The name like `heroku/dotnet` is already included in the output.
+        "});
+        print::plain("");
+
         output = output.h2("Bullet section features");
         output = output
             .bullet("Bullet example")

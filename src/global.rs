@@ -139,6 +139,27 @@ pub mod print {
         write::h2(&mut GlobalWriter, s);
     }
 
+    /// Output plain text
+    ///
+    /// Like `println!` but it writes to the shared global
+    /// writer.
+    ///
+    /// ```
+    #[doc = include_str!("./docs/global_setup.rs")]
+    ///
+    /// print::plain("This almost seems silly.");
+    /// print::plain("But it auto-flushes IO.");
+    /// print::plain("Which is nice.");
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// This almost seems silly.
+    /// But it auto-flushes IO.
+    /// Which is nice.
+    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// ```
+    pub fn plain(s: impl AsRef<str>) {
+        write::plain(&mut GlobalWriter, s)
+    }
+
     /// Output a bullet point to the global writer without state
     ///
     /// ```

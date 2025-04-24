@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add: `global::print::plain` to print out plain text like `println!`. It auto-flushes IO, redirects to the global writer (if you wanted to capture everything), and enables "paragraph detection" if it's followed by something like a warning or error ()
+
 ## v0.6.1 - 2024/02/11
 
 - Fix: Relax the constraint of `fun_run` optional dependency. Now any version higher than `0.5` and less than `1.0` is will work. (https://github.com/heroku-buildpacks/bullet_stream/pull/30)
