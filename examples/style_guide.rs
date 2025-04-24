@@ -49,12 +49,10 @@ fn main() {
             Prefer using h2, bullet, and sub-bullet indentation levels when possible.
         "});
 
-        output = output.h2("Bullet section features");
-        output = output
-            .bullet("Bullet example")
-            .sub_bullet("sub bullet example one")
-            .sub_bullet("sub bullet example two")
-            .done();
+        print::h2("Bullet section features");
+        print::bullet("Bullet example");
+        print::sub_bullet("Sub bullet example one");
+        print::sub_bullet("Sub bullet example two");
 
         output = output
             .bullet("Bullet section description")
