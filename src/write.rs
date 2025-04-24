@@ -64,7 +64,7 @@ pub(crate) fn bullet<W: Write>(writer: &mut W, s: impl AsRef<str>) {
 }
 
 pub(crate) fn plain<W: Write>(writer: &mut W, s: impl AsRef<str>) {
-    writeln!(writer, "{}", s.as_ref()).expect("writer open");
+    writeln!(writer, "{}", s.as_ref().trim_end()).expect("writer open");
     writer.flush().expect("writer open");
 }
 
@@ -368,6 +368,32 @@ mod test {
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use std::process::Command;
+
+    #[test]
+    fn plain_ending_newline() {
+        let writer = LockedWriter::new(Vec::new());
+        let reader = writer.clone();
+        let mut writer = ParagraphInspectWrite::new(writer);
+
+        let input = formatdoc! {"
+            Accidental newline
+        "};
+
+        assert!(input.ends_with("\n"));
+        plain(&mut writer, input);
+        h2(&mut writer, "Then a header");
+        drop(writer);
+
+        assert_eq!(
+            formatdoc! {"
+                Accidental newline
+
+                ## Then a header
+
+            "},
+            strip_ansi(String::from_utf8_lossy(&reader.unwrap()))
+        );
+    }
 
     #[test]
     fn test_mapped_write() {
