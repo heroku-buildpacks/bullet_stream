@@ -171,7 +171,6 @@ pub mod print {
     ///
     /// ```
     #[doc = include_str!("./docs/global_setup.rs")]
-    ///
     /// print::plain("This almost seems silly.");
     /// print::plain("But it auto-flushes IO.");
     /// print::plain("Which is nice.");
@@ -183,6 +182,73 @@ pub mod print {
     /// ```
     pub fn plain(s: impl AsRef<str>) {
         write::plain(&mut GlobalWriter, s)
+    }
+
+    /// Announce the name of a buildpack
+    ///
+    /// Use together with [all_done]
+    /// ```
+    #[doc = include_str!("./docs/global_setup.rs")]
+    /// let started = print::buildpack("Heroku Awesome Buildpack");
+    /// print::bullet("Just add awesome.");
+    /// print::all_done(&Some(started));
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// ### Heroku Awesome Buildpack
+    ///
+    /// - Just add awesome.
+    /// - Done (finished in < 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// ```
+    pub fn buildpack(s: impl AsRef<str>) -> Instant {
+        write::h2(&mut GlobalWriter, s);
+        Instant::now()
+    }
+
+    /// Header to break up subsections in a buildpack's output
+    ///
+    /// ```
+    #[doc = include_str!("./docs/global_setup.rs")]
+    ///
+    /// let started = print::buildpack("FYEO Buildpack");
+    ///
+    /// print::header("the branches bending low");
+    /// print::bullet("Tracks");
+    /// print::sub_bullet("all the windows are glowing");
+    /// print::sub_bullet("looking in between those long reeds");
+    /// print::bullet("Released");
+    /// print::sub_bullet("2024");
+    ///
+    /// print::header("failed book plots");
+    /// print::bullet("Tracks");
+    /// print::sub_bullet("the stream at new river beach ");
+    /// print::sub_bullet("a line that is broad");
+    /// print::bullet("Released");
+    /// print::sub_bullet("2023");
+    ///
+    /// print::all_done(&Some(started));
+    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// ### FYEO Buildpack
+    ///
+    /// #### the branches bending low
+    ///
+    /// - Tracks
+    ///   - all the windows are glowing
+    ///   - looking in between those long reeds
+    /// - Released
+    ///   - 2024
+    ///
+    /// #### failed book plots
+    ///
+    /// - Tracks
+    ///   - the stream at new river beach
+    ///   - a line that is broad
+    /// - Released
+    ///   - 2023
+    /// - Done (finished in < 0.1s)
+    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// ```
+    pub fn header(s: impl AsRef<str>) {
+        write::h3(&mut GlobalWriter, s);
     }
 
     /// Output a bullet point to the global writer without state

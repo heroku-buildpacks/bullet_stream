@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add: explicit `print::buildpack` and `print::header` functions that are focused on intent rather than implementation detail (https://github.com/heroku-buildpacks/bullet_stream/pull/34)
 - Add: `h3` header support (https://github.com/heroku-buildpacks/bullet_stream/pull/32)
 - Add: `global::print::plain` to print out plain text like `println!`. It auto-flushes IO, redirects to the global writer (if you wanted to capture everything), and enables "paragraph detection" if it's followed by something like a warning or error ()
 
