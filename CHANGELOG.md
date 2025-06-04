@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Change: Result of `global::sub_start_timer(...).done()` is no longer "must use". This means it no longer needs `let _ =` for clippy. (https://github.com/heroku-buildpacks/bullet_stream/pull/38)
+
 ## v0.8.0 - 2024/04/24
 
 - Add: explicit `print::buildpack` and `print::header` functions that are focused on intent rather than implementation detail (https://github.com/heroku-buildpacks/bullet_stream/pull/34)

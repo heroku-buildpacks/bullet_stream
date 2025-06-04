@@ -116,7 +116,7 @@ where
         style::running_command(command.name()),
     );
     let output = command.named_output();
-    let _ = timer.done();
+    timer.done();
     output
 }
 

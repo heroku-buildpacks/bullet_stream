@@ -432,7 +432,6 @@ where
     ///
     /// Once you're finished with your long running task, calling this function
     /// finalizes the timer's output and transitions back to a [`state::SubBullet`].
-    #[must_use]
     pub fn done(self) -> Print<state::SubBullet<W>> {
         let duration = self.state.started.elapsed();
         let mut io = match self.state.write.stop() {
