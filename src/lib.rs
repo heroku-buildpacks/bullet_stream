@@ -9,6 +9,8 @@ use style::CMD_INDENT;
 use util::TrailingParagraph;
 
 pub use ansi_escape::strip_ansi;
+#[cfg(feature = "fun_run")]
+pub use fun_run;
 
 mod ansi_escape;
 mod background_printer;
