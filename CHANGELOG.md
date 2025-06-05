@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.9.0 2025/06/05
+
 - Change: Result of `global::sub_start_timer(...).done()` is no longer "must use". This means it no longer needs `let _ =` for clippy. (https://github.com/heroku-buildpacks/bullet_stream/pull/38)
 - Add: The `fun_run` library is re-exported when `feature = "fun_run"` is enabled (on by default). This is because our crate exposes types from `fun_run` in the form of an error result `fun_run::CmdError`, now someone can use that feature and that type via re-export and guarantee it's the same version. (https://github.com/heroku-buildpacks/bullet_stream/pull/39)
 
