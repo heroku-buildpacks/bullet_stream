@@ -1,22 +1,25 @@
 #![doc = include_str!("../README.md")]
-
 use crate::util::ParagraphInspectWrite;
 use crate::write::line_mapped;
+use global::GlobalWriter;
 use std::fmt::Debug;
 use std::io::Write;
 use std::time::Instant;
+use style::CMD_INDENT;
+use util::TrailingParagraph;
+
+pub use ansi_escape::strip_ansi;
+#[cfg(feature = "fun_run")]
+pub use fun_run;
 
 mod ansi_escape;
 mod background_printer;
 mod duration_format;
-pub mod global;
-pub mod style;
 mod util;
 mod write;
-pub use ansi_escape::strip_ansi;
-use global::GlobalWriter;
-use style::CMD_INDENT;
-use util::TrailingParagraph;
+
+pub mod global;
+pub mod style;
 
 /// Use [`Print`] to output structured text as a buildpack/script executes. The output
 /// is intended to be read by the application user.
