@@ -231,18 +231,24 @@ pub mod print {
     /// Output a h1 header to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
-    /// print::h1("I am a top level header");
     /// let duration = std::time::Instant::now();
-    /// // ...
+    /// print::h1("I am a top level header");
+    ///
     /// print::all_done(&Some(duration));
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ## I am a top level header
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   ## I am a top level header
+    ///
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn h1(s: impl AsRef<str>) {
         write::h1(&mut GlobalWriter, s);
@@ -251,21 +257,27 @@ pub mod print {
     /// Output a h2 header to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// print::h1("I am a top level header");
     /// print::h2("I am an h2 header");
     /// let duration = std::time::Instant::now();
     /// // ...
     /// print::all_done(&Some(duration));
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ## I am a top level header
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// ### I am an h2 header
+    ///   ## I am a top level header
     ///
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   ### I am an h2 header
+    ///
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn h2(s: impl AsRef<str>) {
         write::h2(&mut GlobalWriter, s);
@@ -274,23 +286,30 @@ pub mod print {
     /// Output a h3 header to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
+    ///
     /// print::h1("I am a top level header");
     /// print::h2("I am an h2 header");
     /// print::h3("I am an h3 header");
     /// let duration = std::time::Instant::now();
     /// // ...
     /// print::all_done(&Some(duration));
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ## I am a top level header
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// ### I am an h2 header
+    ///   ## I am a top level header
     ///
-    /// #### I am an h3 header
+    ///   ### I am an h2 header
     ///
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   #### I am an h3 header
+    ///
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn h3(s: impl AsRef<str>) {
         write::h3(&mut GlobalWriter, s);
@@ -302,15 +321,22 @@ pub mod print {
     /// writer.
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
+    ///
     /// print::plain("This almost seems silly.");
     /// print::plain("But it auto-flushes IO.");
     /// print::plain("Which is nice.");
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// This almost seems silly.
-    /// But it auto-flushes IO.
-    /// Which is nice.
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// # });
+    ///
+    /// let expected = indoc::formatdoc!{"
+    ///   This almost seems silly.
+    ///   But it auto-flushes IO.
+    ///   Which is nice.
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn plain(s: impl AsRef<str>) {
         write::plain(&mut GlobalWriter, s)
@@ -320,16 +346,24 @@ pub mod print {
     ///
     /// Use together with [all_done]
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
+    ///
     /// let started = print::buildpack("Heroku Awesome Buildpack");
     /// print::bullet("Just add awesome.");
     /// print::all_done(&Some(started));
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ### Heroku Awesome Buildpack
+    /// # });
     ///
-    /// - Just add awesome.
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// let expected = indoc::formatdoc!{"
+    ///
+    ///   ### Heroku Awesome Buildpack
+    ///
+    ///   - Just add awesome.
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn buildpack(s: impl AsRef<str>) -> Instant {
         write::h2(&mut GlobalWriter, s);
@@ -339,7 +373,10 @@ pub mod print {
     /// Header to break up subsections in a buildpack's output
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// let started = print::buildpack("FYEO Buildpack");
     ///
@@ -358,26 +395,30 @@ pub mod print {
     /// print::sub_bullet("2023");
     ///
     /// print::all_done(&Some(started));
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ### FYEO Buildpack
+    /// # });
     ///
-    /// #### the branches bending low
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// - Tracks
-    ///   - all the windows are glowing
-    ///   - looking in between those long reeds
-    /// - Released
-    ///   - 2024
+    ///   ### FYEO Buildpack
     ///
-    /// #### failed book plots
+    ///   #### the branches bending low
     ///
-    /// - Tracks
-    ///   - the stream at new river beach
-    ///   - a line that is broad
-    /// - Released
-    ///   - 2023
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   - Tracks
+    ///     - all the windows are glowing
+    ///     - looking in between those long reeds
+    ///   - Released
+    ///     - 2024
+    ///
+    ///   #### failed book plots
+    ///
+    ///   - Tracks
+    ///     - the stream at new river beach
+    ///     - a line that is broad
+    ///   - Released
+    ///     - 2023
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn header(s: impl AsRef<str>) {
         write::h3(&mut GlobalWriter, s);
@@ -386,12 +427,18 @@ pub mod print {
     /// Output a bullet point to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// print::bullet("Good point!");
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// - Good point!
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// # });
+    ///
+    /// let expected = indoc::formatdoc!{"
+    ///   - Good point!
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn bullet(s: impl AsRef<str>) {
         write::bullet(&mut GlobalWriter, s)
@@ -400,15 +447,20 @@ pub mod print {
     /// Output a sub-bullet point to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// print::bullet("Good point!");
     /// print::sub_bullet("Another good point!");
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// - Good point!
-    ///   - Another good point!
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// let expected = indoc::formatdoc!{"
+    ///   - Good point!
+    ///     - Another good point!
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn sub_bullet(s: impl AsRef<str>) {
         write::sub_bullet(&mut GlobalWriter, s);
@@ -417,7 +469,7 @@ pub mod print {
     /// Print a sub-bullet and stream a command to the global writer without state
     ///
     /// ```no_run
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
     /// use fun_run::CommandWithName;
     ///
     /// let mut cmd = std::process::Command::new("bash");
@@ -440,7 +492,7 @@ pub mod print {
     /// This provieds convienence and standardization over [sub_stream_with]
     ///
     /// ```no_run
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
     /// use fun_run::CommandWithName;
     ///
     /// print::sub_stream_cmd(
@@ -458,16 +510,22 @@ pub mod print {
     /// Print a sub-bullet and then emmit dots to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// print::bullet("Ruby");
     /// let timer = print::sub_start_timer("Installing");
     /// // ...
     /// timer.done();
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// - Ruby
-    ///   - Installing ... (< 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// # });
+    ///
+    /// let expected = indoc::formatdoc!{"
+    ///   - Ruby
+    ///     - Installing ... (< 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn sub_start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
         write::sub_start_timer(ParagraphInspectWrite::new(GlobalWriter), Instant::now(), s)
@@ -480,7 +538,7 @@ pub mod print {
     /// Provides convience and standardization over [sub_start_timer].
     ///
     /// ```no_run
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
     /// use fun_run::CommandWithName;
     ///
     /// print::sub_time_cmd(
@@ -499,18 +557,24 @@ pub mod print {
     /// Print an all done message with timing info to the UI
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// print::h2("I am an h2 header");
     /// let duration = std::time::Instant::now();
     /// // ...
     /// print::all_done(&Some(duration));
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ### I am an h2 header
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   ### I am an h2 header
+    ///
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn all_done(started: &Option<Instant>) {
         write::all_done(&mut GlobalWriter, started);
@@ -519,16 +583,22 @@ pub mod print {
     /// Print a warning to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
     /// print::warning("This town ain't\nbig enough\nfor the both of us");
-    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// # });
     ///
-    /// ! This town ain't
-    /// ! big enough
-    /// ! for the both of us
+    /// let expected = indoc::formatdoc!{"
     ///
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   ! This town ain't
+    ///   ! big enough
+    ///   ! for the both of us
+    ///
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn warning(s: impl AsRef<str>) {
         write::warning(&mut GlobalWriter, s);
@@ -537,7 +607,10 @@ pub mod print {
     /// Print an error to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     /// use indoc::formatdoc;
     ///
     /// print::error(formatdoc! {"
@@ -546,15 +619,17 @@ pub mod print {
     ///     in deep space that I really wish I'd listened to what my mother told
     ///     me when I was young
     /// "});
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// ! It's at times like this, when I'm trapped in a Vogon
-    /// ! airlock with a man from Betelgeuse, and about to die of asphyxiation
-    /// ! in deep space that I really wish I'd listened to what my mother told
-    /// ! me when I was young
+    ///   ! It's at times like this, when I'm trapped in a Vogon
+    ///   ! airlock with a man from Betelgeuse, and about to die of asphyxiation
+    ///   ! in deep space that I really wish I'd listened to what my mother told
+    ///   ! me when I was young
     ///
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn error(s: impl AsRef<str>) {
         write::error(&mut GlobalWriter, s);
