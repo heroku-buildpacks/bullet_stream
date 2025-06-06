@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add: New function `global::with_locked_writer` is introduced to allow consistently capturing write output. This function is designed for use in testing output or in other non-reentrant capture cases. This blocks all threads using this function but one from executing so that a deterministic and consistent output is captured. Previously tests could be written with a thread_local writer, however there's a subtle race condition in that approach if the output relies on "paragraph" style text (https://github.com/heroku-buildpacks/bullet_stream/pull/43).
+
 ## v0.9.0 2025/06/05
 
 - Change: Result of `global::sub_start_timer(...).done()` is no longer "must use". This means it no longer needs `let _ =` for clippy. (https://github.com/heroku-buildpacks/bullet_stream/pull/38)

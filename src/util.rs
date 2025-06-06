@@ -76,8 +76,8 @@ pub(crate) trait TrailingParagraph: Write {
     fn trailing_newline_count(&self) -> usize;
 }
 
-pub(crate) trait TrailingParagraphSend: TrailingParagraph + Send {}
-impl<T> TrailingParagraphSend for T where T: TrailingParagraph + Send {}
+pub(crate) trait TrailingParagraphSend: TrailingParagraph + Any + Send {}
+impl<T> TrailingParagraphSend for T where T: TrailingParagraph + Any + Send {}
 
 impl<W> TrailingParagraph for ParagraphInspectWrite<W>
 where
