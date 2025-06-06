@@ -1,7 +1,12 @@
 use crate::util::ParagraphInspectWrite;
 use crate::util::TrailingParagraph;
 use crate::util::TrailingParagraphSend;
+use std::any::Any;
+use std::cell::Cell;
 use std::io::Write;
+use std::panic::catch_unwind;
+use std::panic::resume_unwind;
+use std::panic::AssertUnwindSafe;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
@@ -55,7 +60,8 @@ impl TrailingParagraph for GlobalWriter {
 ///
 /// # Panics
 ///
-/// If you try to pass in a `_GlobalWriter`
+/// - If you try to pass in a `GlobalWriter`
+/// - If you try to call `set_writer` inside of `with_locked_writer`
 pub fn set_writer<W>(new_writer: W)
 where
     W: Write + Send + 'static,
@@ -64,8 +70,137 @@ where
         panic!("Cannot set the global writer to GlobalWriter");
     }
 
+    let _global_lock = WITH_WRITER_GLOBAL_LOCK
+        .try_lock()
+        .expect("Cannot call `set_writer` inside of `with_locked_writer`");
+
     let mut writer = WRITER.lock().unwrap();
     *writer = Box::new(ParagraphInspectWrite::new(new_writer));
+}
+
+static WITH_WRITER_GLOBAL_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| ().into());
+thread_local! {
+    static WITH_WRITER_REENTRANT_CHECK: Cell<bool> = const { Cell::new(false) };
+}
+
+/// RAII guard for preventing reentrant calls to `with_locked_writer`
+///
+/// This guard automatically resets the reentrant check flag when dropped,
+/// ensuring proper cleanup even if the guarded code panics.
+struct ReentrantGuard;
+
+impl ReentrantGuard {
+    /// Creates a new guard, panicking if already set (indicating reentrant call)
+    fn new() -> Self {
+        WITH_WRITER_REENTRANT_CHECK.with(|only_once| {
+            if only_once.get() {
+                panic!("Cannot call this function recursively!");
+            }
+            only_once.set(true);
+        });
+        ReentrantGuard
+    }
+}
+
+impl Drop for ReentrantGuard {
+    fn drop(&mut self) {
+        WITH_WRITER_REENTRANT_CHECK.with(|only_once| {
+            only_once.set(false);
+        });
+    }
+}
+
+/// Sets the global writer for the duration of the provided closure
+///
+/// This is meant to be used in tests where the order of writes are important.
+///
+/// ```rust
+/// use bullet_stream::global::{self, print};
+///
+/// let out = global::with_locked_writer(Vec::<u8>::new(), || {
+///   print::bullet("Hello world");
+/// });
+/// assert_eq!("- Hello world\n".to_string(), String::from_utf8_lossy(&out));
+///
+/// let out = global::with_locked_writer(Vec::<u8>::new(), || {
+///   print::bullet("Knock, knock, Neo");
+/// });
+/// assert_eq!("- Knock, knock, Neo\n".to_string(), String::from_utf8_lossy(&out));
+/// ```
+///
+/// Guarantees that only one invocation of this is called at a time. Returns the provided
+/// writer on completion. Panics if called recursively in the same thread.
+///
+/// # Panics
+///
+/// - If you mutate the global writer via another mechanism (such as calling `global::set_writer`)
+///   from within this thread.
+///
+/// ```should_panic
+/// use bullet_stream::global;
+///
+/// global::with_locked_writer(Vec::<u8>::new(), || {
+///     global::set_writer(Vec::<u8>::new());
+/// });
+/// ```
+///
+/// - If you try to call the function recursively in the same thread:
+///
+/// ```should_panic
+/// use bullet_stream::global;
+///
+/// global::with_locked_writer(Vec::<u8>::new(), || {
+///     global::with_locked_writer(Vec::<u8>::new(), || {
+///         //
+///     });
+/// });
+/// ```
+///
+/// - If you try to pass in a `GlobalWriter`
+///
+/// ```should_panic
+/// use bullet_stream::global;
+///
+/// global::with_locked_writer(global::GlobalWriter, || {
+///     //
+/// });
+/// ```
+pub fn with_locked_writer<W, F>(new_writer: W, f: F) -> W
+where
+    W: Write + Send + Any + 'static,
+    F: FnOnce(),
+{
+    if std::any::Any::type_id(&new_writer) == std::any::TypeId::of::<GlobalWriter>() {
+        panic!("Cannot set the global writer to GlobalWriter");
+    }
+    // Ensure all locks are dropped on panic, this supports test assertion failures
+    // without poisoning locks
+    let writer_or_panic = {
+        // Panic if called recursively, must come before lock to prevent deadlock
+        let _reentrant_guard = ReentrantGuard::new();
+        let _global_lock = WITH_WRITER_GLOBAL_LOCK.lock().unwrap();
+        let old_writer = {
+            let mut write_lock = WRITER.lock().unwrap();
+            std::mem::replace(
+                &mut *write_lock,
+                Box::new(ParagraphInspectWrite::new(new_writer)),
+            )
+        };
+
+        let f_panic = catch_unwind(AssertUnwindSafe(f));
+
+        let new_writer = {
+            let mut write_lock = WRITER.lock().unwrap();
+            std::mem::replace(&mut *write_lock, old_writer)
+        };
+
+        if let Ok(original) = (new_writer as Box<dyn Any>).downcast::<ParagraphInspectWrite<W>>() {
+            f_panic.map(|_| original.inner)
+        } else {
+            panic!("Could not downcast to original type. Writer was mutated unexpectedly")
+        }
+    };
+    writer_or_panic.unwrap_or_else(|payload| resume_unwind(payload))
 }
 
 #[cfg(feature = "global_functions")]
@@ -426,5 +561,58 @@ pub mod print {
     /// ```
     pub fn error(s: impl AsRef<str>) {
         write::error(&mut GlobalWriter, s);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::strip_ansi;
+    use indoc::formatdoc;
+    use pretty_assertions::assert_eq;
+    use std::panic;
+    use std::thread;
+
+    #[test]
+    fn with_locked_writer_handles_panics_across_threads() {
+        let handle1 = thread::spawn(|| {
+            panic::catch_unwind(|| {
+                with_locked_writer(Vec::new(), || {
+                    print::bullet("About to panic");
+                    panic!("Intentional panic for testing");
+                });
+            })
+        });
+
+        let result = handle1
+            .join()
+            .expect("First thread should complete successfully");
+
+        assert!(result.is_err(), "Expected panic to be caught {:?}", result);
+
+        let handle2 = thread::spawn(|| {
+            let output = with_locked_writer(Vec::new(), || {
+                print::bullet("This should work fine");
+                print::sub_bullet("Even after another thread panicked");
+            });
+
+            let expected = formatdoc! {"
+                - This should work fine
+                  - Even after another thread panicked
+            "};
+
+            assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&output)));
+        });
+
+        handle2
+            .join()
+            .expect("Second thread should complete successfully");
+
+        let output = with_locked_writer(Vec::new(), || {
+            print::bullet("Main thread still works");
+        });
+
+        let expected = "- Main thread still works\n";
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&output)));
     }
 }
