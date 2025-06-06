@@ -185,18 +185,24 @@ pub mod print {
     /// Output a h1 header to the global writer without state
     ///
     /// ```
-    #[doc = include_str!("./docs/global_setup.rs")]
+    /// use bullet_stream::global::print;
+    /// # use pretty_assertions::assert_eq;
+    /// #
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::<u8>::new(), ||{
     ///
-    /// print::h1("I am a top level header");
     /// let duration = std::time::Instant::now();
-    /// // ...
+    /// print::h1("I am a top level header");
+    ///
     /// print::all_done(&Some(duration));
+    /// # });
     ///
-    #[doc = include_str!("./docs/global_done_one.rs")]
-    /// ## I am a top level header
+    /// let expected = indoc::formatdoc!{"
     ///
-    /// - Done (finished in < 0.1s)
-    #[doc = include_str!("./docs/global_done_two.rs")]
+    ///   ## I am a top level header
+    ///
+    ///   - Done (finished in < 0.1s)
+    /// "};
+    /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
     pub fn h1(s: impl AsRef<str>) {
         write::h1(&mut GlobalWriter, s);
