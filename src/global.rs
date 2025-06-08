@@ -78,7 +78,9 @@ where
         .try_lock()
         .expect("Cannot call `set_writer` inside of `with_locked_writer`");
 
-    let mut writer = WRITER.lock().unwrap();
+    let mut writer = WRITER
+        .lock()
+        .expect("Global writer lock poisoned - cannot guarantee data consistency");
     *writer = Box::new(ParagraphInspectWrite::new(new_writer));
 }
 
@@ -182,9 +184,13 @@ where
     let writer_or_panic = {
         // Panic if called recursively, must come before lock to prevent deadlock
         let _reentrant_guard = ReentrantGuard::new();
-        let _global_lock = WITH_WRITER_GLOBAL_LOCK.lock().unwrap();
+        let _global_lock = WITH_WRITER_GLOBAL_LOCK
+            .lock()
+            .expect("Global writer coordination lock poisoned - cannot guarantee thread safety");
         let old_writer = {
-            let mut write_lock = WRITER.lock().unwrap();
+            let mut write_lock = WRITER
+                .lock()
+                .expect("Global writer lock poisoned - cannot guarantee data consistency");
             std::mem::replace(
                 &mut *write_lock,
                 Box::new(ParagraphInspectWrite::new(new_writer)),
@@ -194,14 +200,16 @@ where
         let f_panic = catch_unwind(AssertUnwindSafe(f));
 
         let new_writer = {
-            let mut write_lock = WRITER.lock().unwrap();
+            let mut write_lock = WRITER
+                .lock()
+                .expect("Global writer lock poisoned - cannot guarantee data consistency");
             std::mem::replace(&mut *write_lock, old_writer)
         };
 
         if let Ok(original) = (new_writer as Box<dyn Any>).downcast::<ParagraphInspectWrite<W>>() {
             f_panic.map(|_| original.inner)
         } else {
-            panic!("Could not downcast to original type. Writer was mutated unexpectedly")
+            panic!("Could not downcast to original type. Writer was mutated unexpectedly. This indicates a bug in with_locked_writer implementation.")
         }
     };
     writer_or_panic.unwrap_or_else(|payload| resume_unwind(payload))
