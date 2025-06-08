@@ -70,6 +70,10 @@ where
         panic!("Cannot set the global writer to GlobalWriter");
     }
 
+    let _global_lock = WITH_WRITER_GLOBAL_LOCK
+        .try_lock()
+        .expect("Cannot call `set_writer` inside of `with_locked_writer`");
+
     let mut writer = WRITER.lock().unwrap();
     *writer = Box::new(ParagraphInspectWrite::new(new_writer));
 }
