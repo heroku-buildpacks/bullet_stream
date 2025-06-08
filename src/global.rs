@@ -61,11 +61,11 @@ where
     W: Write + Send + 'static,
 {
     if std::any::Any::type_id(&new_writer) == std::any::TypeId::of::<GlobalWriter>() {
-        panic!("Cannot set the global writer to _GlobalWriter");
-    } else {
-        let mut writer = WRITER.lock().unwrap();
-        *writer = Box::new(ParagraphInspectWrite::new(new_writer));
+        panic!("Cannot set the global writer to GlobalWriter");
     }
+
+    let mut writer = WRITER.lock().unwrap();
+    *writer = Box::new(ParagraphInspectWrite::new(new_writer));
 }
 
 #[cfg(feature = "global_functions")]
