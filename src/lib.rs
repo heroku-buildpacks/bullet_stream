@@ -746,7 +746,7 @@ mod test {
     use indoc::formatdoc;
     use libcnb_test::assert_contains;
     use pretty_assertions::assert_eq;
-    use std::{cell::RefCell, fs::File, process::Command};
+    use std::{fs::File, process::Command};
 
     #[test]
     fn double_h2_h2_newlines() {
@@ -1102,41 +1102,20 @@ mod test {
         assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
     }
 
-    thread_local! {
-        static THREAD_LOCAL_WRITER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
-    }
-
-    struct V8ThreadedWriter;
-    impl V8ThreadedWriter {
-        fn take() -> Vec<u8> {
-            THREAD_LOCAL_WRITER.take()
-        }
-    }
-    impl Write for V8ThreadedWriter {
-        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-            THREAD_LOCAL_WRITER.with_borrow_mut(|writer| writer.write(buf))
-        }
-
-        fn flush(&mut self) -> std::io::Result<()> {
-            THREAD_LOCAL_WRITER.with_borrow_mut(|writer| writer.flush())
-        }
-    }
-
     #[test]
     fn global_preserves_newline() {
-        global::set_writer(V8ThreadedWriter);
+        let output = global::with_locked_writer(Vec::new(), || {
+            Print::global()
+                .h1("Genuine Joes")
+                .bullet("Dodge")
+                .sub_bullet("A ball")
+                .error("A wrench");
 
-        Print::global()
-            .h1("Genuine Joes")
-            .bullet("Dodge")
-            .sub_bullet("A ball")
-            .error("A wrench");
+            Print::global()
+                .without_header()
+                .error("It's a bold strategy, Cotton.\nLet's see if it pays off for 'em.");
+        });
 
-        Print::global()
-            .without_header()
-            .error("It's a bold strategy, Cotton.\nLet's see if it pays off for 'em.");
-
-        let io = V8ThreadedWriter::take();
         let expected = formatdoc! {"
 
             # Genuine Joes
@@ -1151,7 +1130,7 @@ mod test {
 
         "};
 
-        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&io)));
+        assert_eq!(expected, strip_ansi(String::from_utf8_lossy(&output)));
     }
 
     #[test]
