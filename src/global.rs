@@ -30,12 +30,16 @@ pub type _GlobalWriter = GlobalWriter;
 
 impl Write for GlobalWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let mut w = WRITER.lock().unwrap();
+        let mut w = WRITER.lock().map_err(|_| {
+            std::io::Error::other("GlobalWriter lock poisoned - cannot guarantee data consistency")
+        })?;
         w.write(buf)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        let mut w = WRITER.lock().unwrap();
+        let mut w = WRITER.lock().map_err(|_| {
+            std::io::Error::other("GlobalWriter lock poisoned - cannot guarantee data consistency")
+        })?;
         w.flush()
     }
 }
