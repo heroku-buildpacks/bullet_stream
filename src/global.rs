@@ -219,14 +219,14 @@ where
 pub mod print {
     //! Print to a global writer without stateful protections
     //!
-    //! The original [Print] struct provides maximum safety, which can cause max pain
+    //! The original [crate::Print] struct provides maximum safety, which can cause max pain
     //! if you're trying to add pretty printing to a large codebase. If that's you,
     //! you can use these global functions to write output along with some help
     //! from the [crate::style] module.
     //!
     //! The downside is that there's no compilation guarantees for example: to prevent printing
     //! while a timer is running. Some basic consistency is still enforced such as newlines.
-    //! If using this alongside of stateful output, use [Print::global] to ensure
+    //! If using this alongside of stateful output, use [crate::Print::global] to ensure
     //! consistent newlines.
     //!
     //! Use [crate::global::set_writer] to configure the print output location.
@@ -240,7 +240,7 @@ pub mod print {
 
     use super::*;
     use crate::write;
-    use crate::Print;
+    use crate::GlobalTimer;
     use std::time::Instant;
 
     /// Output a h1 header to the global writer without state
@@ -542,8 +542,11 @@ pub mod print {
     /// "};
     /// assert_eq!(expected, bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
     /// ```
-    pub fn sub_start_timer(s: impl AsRef<str>) -> Print<crate::state::Background<impl Write>> {
-        write::sub_start_timer(ParagraphInspectWrite::new(GlobalWriter), Instant::now(), s)
+    pub fn sub_start_timer(s: impl AsRef<str>) -> crate::GlobalTimer {
+        let started = Instant::now();
+        let guard = write::sub_start_print_interval(GlobalWriter, s);
+
+        GlobalTimer { started, guard }
     }
 
     /// Prints the name of a command and times (with dots) it in the background
