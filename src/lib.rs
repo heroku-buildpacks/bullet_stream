@@ -21,6 +21,79 @@ mod write;
 pub mod global;
 pub mod style;
 
+/// Holds a reference to an actively printing timer in the background
+///
+/// If the timer is droppped without being intentionally stopped due it is assumed
+/// to be an error. This behavior supports using the timer along side of code that
+/// may return early via try (`?`):
+///
+/// ```
+/// use bullet_stream::global::print;
+///
+/// # let output = bullet_stream::global::with_locked_writer(Vec::new(), ||{
+/// let timer = print::sub_start_timer("Wait for it");
+/// drop(timer);
+/// # });
+/// let expected = "  - Wait for it ... (Error)\n";
+/// # assert_eq!(expected.to_string(), bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
+/// ```
+pub struct GlobalTimer {
+    pub(crate) started: Instant,
+    pub(crate) guard: background_printer::PrintGuard<GlobalWriter>,
+}
+
+impl GlobalTimer {
+    /// Cancel a timer with a message
+    ///
+    /// ```
+    /// use bullet_stream::global::print;
+    ///
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::new(), ||{
+    /// let timer = print::sub_start_timer("Wait for it");
+    /// timer.cancel("Interrupted");
+    /// # });
+    /// let expected = "  - Wait for it ... (Interrupted)\n";
+    /// # assert_eq!(expected.to_string(), bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
+    /// ```
+    pub fn cancel(self, why_details: impl AsRef<str>) {
+        let mut io = match self.guard.stop() {
+            Ok(io) => io,
+            // Stdlib docs recommend using `resume_unwind` to resume the thread panic
+            // <https://doc.rust-lang.org/std/thread/type.Result.html>
+            Err(e) => std::panic::resume_unwind(e),
+        };
+
+        writeln_now(&mut io, style::details(why_details));
+    }
+
+    /// Finalize a timer's output.
+    ///
+    /// Once you're finished with your long running task, calling this function
+    /// finalizes the timer's output.
+    ///
+    /// ```
+    /// use bullet_stream::global::print;
+    ///
+    /// # let output = bullet_stream::global::with_locked_writer(Vec::new(), ||{
+    /// let timer = print::sub_start_timer("Wait for it");
+    /// timer.done();
+    /// # });
+    /// let expected = "  - Wait for it ... (< 0.1s)\n";
+    /// # assert_eq!(expected.to_string(), bullet_stream::strip_ansi(String::from_utf8_lossy(&output)));
+    /// ```
+    pub fn done(self) {
+        let duration = self.started.elapsed();
+        let mut io = match self.guard.stop() {
+            Ok(io) => io,
+            // Stdlib docs recommend using `resume_unwind` to resume the thread panic
+            // <https://doc.rust-lang.org/std/thread/type.Result.html>
+            Err(e) => std::panic::resume_unwind(e),
+        };
+
+        writeln_now(&mut io, style::details(duration_format::human(&duration)));
+    }
+}
+
 /// Use [`Print`] to output structured text as a buildpack/script executes. The output
 /// is intended to be read by the application user.
 ///
