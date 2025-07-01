@@ -1,6 +1,6 @@
 [package]
 name = "bullet_stream"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 license = "MIT"
 description = "Bulletproof printing for bullet point text"
@@ -9,6 +9,7 @@ repository = "https://github.com/schneems/bullet_stream"
 documentation = "https://docs.rs/bullet_stream"
 readme = "README.md"
 include = ["src/**/*", "LICENSE", "README.md"]
+rust-version = "1.86"
 
 [dependencies]
 fun_run = { version = ">=0.5,<1", optional = true }

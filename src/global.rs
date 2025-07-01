@@ -675,7 +675,7 @@ mod test {
             .join()
             .expect("First thread should complete successfully");
 
-        assert!(result.is_err(), "Expected panic to be caught {:?}", result);
+        assert!(result.is_err(), "Expected panic to be caught {result:?}");
 
         let handle2 = thread::spawn(|| {
             let output = with_locked_writer(Vec::new(), || {
