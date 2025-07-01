@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+## v0.11.0 2025/07/01
+
 - Change: global::print::sub_start_timer()` now returns a new type `GlobalTimer` that implements the same interface cancel/done interface as before. (https://github.com/heroku-buildpacks/bullet_stream/pull/45)
+- Change/fix: Minimum supported Rust version is now officially 1.86. Previously released, v0.10.0, used a feature stabalized in 1.86 but did not correctly update the MSRV (https://github.com/heroku-buildpacks/bullet_stream/pull/47).
 
 ## v0.10.0 2025/06/09
 
+- Change: Uses a feature of Rust not supported until 1.86, although the MSRV was not correctly incremented in this release (https://github.com/heroku-buildpacks/bullet_stream/pull/43).
 - Add: New function `global::with_locked_writer` is introduced to allow consistently capturing write output. This function is designed for use in testing output or in other non-reentrant capture cases. This blocks all threads using this function but one from executing so that a deterministic and consistent output is captured. Previously tests could be written with a thread_local writer, however there's a subtle race condition in that approach if the output relies on "paragraph" style text (https://github.com/heroku-buildpacks/bullet_stream/pull/43).
 
 ## v0.9.0 2025/06/05
