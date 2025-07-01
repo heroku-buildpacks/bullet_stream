@@ -4,6 +4,7 @@
 
 ## v0.11.0 2025/07/01
 
+- Change: global::print::sub_start_timer()` now returns a new type `GlobalTimer` that implements the same interface cancel/done interface as before. (https://github.com/heroku-buildpacks/bullet_stream/pull/45)
 - Change/fix: Minimum supported Rust version is now officially 1.86. Previously released, v0.10.0, used a feature stabalized in 1.86 but did not correctly update the MSRV (https://github.com/heroku-buildpacks/bullet_stream/pull/47).
 
 ## v0.10.0 2025/06/09
