@@ -13,11 +13,10 @@ dependencies = [
 
 [[package]]
 name = "ascii_table"
-version = "4.0.5"
+version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adb7e515f68a8667f957e85c7d59639fe1fa2e0b06c3c2394869b73a404e52ed"
+checksum = "2bcff894f0b9ba3bdd4c497c3c39df9662a0eedddf33e872ab29a3bda7167119"
 dependencies = [
- "lazy_static",
  "regex",
 ]
 

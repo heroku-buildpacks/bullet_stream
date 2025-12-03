@@ -3,7 +3,6 @@ use bullet_stream::global::print;
 use bullet_stream::{style, Print};
 use fun_run::CommandWithName;
 use indoc::formatdoc;
-use std::io::Write;
 use std::process::Command;
 
 #[allow(clippy::too_many_lines)]
@@ -164,7 +163,7 @@ fn main() {
             .start_stream("Formatting helpers can be used to enhance log output:");
 
         let mut table = AsciiTable::default();
-        table.set_max_width(240);
+        table.set_max_width(ascii_table::Width::Fixed(240));
         table.column(0).set_header("Example");
         table.column(1).set_header("Code");
         table.column(2).set_header("When to use");
@@ -197,7 +196,7 @@ fn main() {
             ],
         ];
 
-        write!(stream, "{}", table.format(data)).unwrap();
+        table.writeln(&mut stream, data).unwrap();
 
         stream.done().done().done();
     }
