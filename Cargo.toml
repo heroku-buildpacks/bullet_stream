@@ -15,8 +15,8 @@ rust-version = "1.86"
 fun_run = { version = ">=0.5,<1", optional = true }
 
 [dev-dependencies]
-indoc = "2.0.5"
-tempfile = "3.13.0"
+indoc = "2.0.7"
+tempfile = "3.23.0"
 libcnb-test = "0.26.1"
 ascii_table = { version = "4.0.4", features = ["color_codes"] }
 pretty_assertions = "1.4"
