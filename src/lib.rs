@@ -580,8 +580,8 @@ where
                 started: Instant::now(),
                 write: line_mapped(self.state.write, |mut line| {
                     // Avoid adding trailing whitespace to the line, if there was none already.
-                    // The `[b'\n']` case is required since `line` includes the trailing newline byte.
-                    if line.is_empty() || line == [b'\n'] {
+                    // The `b"\n"` case is required since `line` includes the trailing newline byte.
+                    if line.is_empty() || line == b"\n" {
                         line
                     } else {
                         let mut result: Vec<u8> = CMD_INDENT.into();
